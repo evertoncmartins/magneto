@@ -185,6 +185,9 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+    // Temp state to hold items before cart confirmation
+    const [tempCartItems, setTempCartItems] = useState<MagnetItem[]>([]);
+
     useEffect(() => {
         if (images.length === 0 && initialImages && initialImages.length > 0) {
             const normalized = normalizeItems(initialImages);
@@ -431,7 +434,7 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
         try {
             const existingKitId = images[0].kitId || `kit-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
 
-            const processedItems = [];
+            const processedItems: MagnetItem[] = [];
             
             for (let i = 0; i < images.length; i++) {
                 const img = images[i];
@@ -442,7 +445,7 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
 
                 const fetchUrl = img.originalUrl || img.backupSrc || img.croppedUrl;
                 if (!fetchUrl) {
-                    processedItems.push({ ...img, kitId: existingKitId, socialConsent });
+                    processedItems.push({ ...img, kitId: existingKitId }); // No consent here yet
                     continue;
                 }
 
@@ -465,14 +468,15 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
                         backupSrc: '', 
                         croppedUrl: displayUrl, 
                         highResUrl: '',  
-                        socialConsent: socialConsent 
+                        // socialConsent is applied later
                     });
                 } catch (err) {
                     console.error("Error processing item", err);
-                    processedItems.push({ ...img, kitId: existingKitId, socialConsent, backupSrc: img.croppedUrl });
+                    processedItems.push({ ...img, kitId: existingKitId, backupSrc: img.croppedUrl });
                 }
             }
-            addToCart(processedItems);
+            // Save to temp state NOT directly to cart
+            setTempCartItems(processedItems);
             setView('success');
         } catch (err) {
             console.error(err);
@@ -480,6 +484,25 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
         } finally {
             setIsProcessing(false);
             setProgress({ current: 0, total: 0 });
+        }
+    };
+
+    // Função para confirmar e enviar ao carrinho com a permissão correta
+    const commitToCart = (destination: string | null) => {
+        const finalItems = tempCartItems.map(item => ({
+            ...item,
+            socialConsent: socialConsent // Aplica a escolha atual do toggle
+        }));
+        
+        addToCart(finalItems);
+        
+        if (destination) {
+            navigate(destination);
+        } else {
+            // Reinicia para novo kit
+            setImages([]);
+            setTempCartItems([]);
+            setView('upload');
         }
     };
 
@@ -899,8 +922,18 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
                     </div>
 
                     <div className="w-full space-y-4">
-                        <button onClick={() => { setImages([]); setView('upload'); }} className="w-full py-5 bg-gray-50 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-[0.2em] rounded-md hover:bg-gray-100 border border-gray-100 transition-all">Montar Outro Kit</button>
-                        <button onClick={() => navigate('/cart')} className="w-full py-5 bg-[#B8860B] text-white font-bold text-[10px] uppercase tracking-[0.2em] rounded-md shadow-xl hover:bg-[#966d09] flex items-center justify-center gap-3 transition-all">Ir para o Carrinho <ArrowRight size={16}/></button>
+                        <button 
+                            onClick={() => commitToCart(null)}
+                            className="w-full py-5 bg-gray-50 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-[0.2em] rounded-md hover:bg-gray-100 border border-gray-100 transition-all"
+                        >
+                            Montar Outro Kit
+                        </button>
+                        <button 
+                            onClick={() => commitToCart('/cart')}
+                            className="w-full py-5 bg-[#B8860B] text-white font-bold text-[10px] uppercase tracking-[0.2em] rounded-md shadow-xl hover:bg-[#966d09] flex items-center justify-center gap-3 transition-all"
+                        >
+                            Ir para o Carrinho <ArrowRight size={16}/>
+                        </button>
                     </div>
                 </div>
             </div>

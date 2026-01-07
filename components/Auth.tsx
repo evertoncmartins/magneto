@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
-import { User } from '../types';
-import { loginUser, registerUser, loginWithGoogle } from '../services/mockService';
+import React, { useState, useEffect, useMemo } from 'react';
+import { User, LoginTestimonial } from '../types';
+import { loginUser, registerUser, loginWithGoogle, getLoginTestimonials, getLoginTestimonialConfig } from '../services/mockService';
 import { ArrowRight, Loader2, LayoutGrid, Mail, Lock, User as UserIcon, Eye, EyeOff, Star, ChevronLeft } from 'lucide-react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 
@@ -9,80 +9,6 @@ interface AuthProps {
   onLogin: (user: User) => void;
   initialMode?: 'login' | 'register';
 }
-
-// Configuração dos Depoimentos e Imagens de Fundo
-const TESTIMONIALS = [
-    {
-        quote: "A qualidade da impressão superou todas as minhas expectativas. É arte pura na minha geladeira.",
-        author: "Sofia M.",
-        role: "Arquiteta • SP",
-        bgImage: "https://images.unsplash.com/photo-1493863641943-9b68992a8d07?q=80&w=1200&auto=format&fit=crop",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-        quote: "Transformou as fotos da nossa viagem de lua de mel em uma galeria diária. O acabamento fosco é incrível.",
-        author: "Lucas & Bia",
-        role: "Recém-casados • RJ",
-        bgImage: "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?q=80&w=1200&auto=format&fit=crop",
-        avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-        quote: "A melhor forma de ver meu filho crescer todos os dias enquanto preparo o café. Embalagem impecável.",
-        author: "Mariana T.",
-        role: "Mãe & Designer • MG",
-        bgImage: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?q=80&w=1200&auto=format&fit=crop",
-        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-        quote: "Sempre tive dificuldade em revelar fotos, mas a Magneto tornou tudo simples. O kit de ímãs é o presente perfeito.",
-        author: "Roberto C.",
-        role: "Fotógrafo • RS",
-        bgImage: "https://images.unsplash.com/photo-1552168324-d612d77725e3?q=80&w=1200&auto=format&fit=crop",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-        quote: "Meus gatos agora estão eternizados na cozinha. A aderência do ímã é muito forte, segura recados perfeitamente.",
-        author: "Júlia V.",
-        role: "Veterinária • PR",
-        bgImage: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=1200&auto=format&fit=crop",
-        avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-        quote: "Uso para organizar meus projetos visuais no escritório. Estética minimalista que combina com qualquer ambiente.",
-        author: "André L.",
-        role: "Diretor de Arte • SP",
-        bgImage: "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?q=80&w=1200&auto=format&fit=crop",
-        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-        quote: "A nitidez das cores me surpreendeu. Parece que estou olhando para a tela do celular, mas com textura.",
-        author: "Carla D.",
-        role: "Artista Plástica • BA",
-        bgImage: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=1200&auto=format&fit=crop",
-        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-        quote: "Fiz um pedido para dar de lembrança no aniversário da minha avó. Todos se emocionaram com a qualidade.",
-        author: "Felipe S.",
-        role: "Estudante • SC",
-        bgImage: "https://images.unsplash.com/photo-1511895426328-dc8714191300?q=80&w=1200&auto=format&fit=crop",
-        avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-        quote: "Cada ímã conta uma história. É muito mais legal do que deixar as fotos perdidas na galeria do smartphone.",
-        author: "Beatriz M.",
-        role: "Jornalista • PE",
-        bgImage: "https://images.unsplash.com/photo-1473186578169-21484721bc7b?q=80&w=1200&auto=format&fit=crop",
-        avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-        quote: "O processo de criação no site é viciante de tão fácil. Em 5 minutos montei meu kit 'Verão 2024'.",
-        author: "Thiago R.",
-        role: "Dev Frontend • DF",
-        bgImage: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop",
-        avatar: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=100&q=80"
-    }
-];
 
 const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login' }) => {
   const location = useLocation();
@@ -93,8 +19,39 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login' }) => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
-  // Seleciona um depoimento aleatório na inicialização do componente
-  const [currentVariant] = useState(() => TESTIMONIALS[Math.floor(Math.random() * TESTIMONIALS.length)]);
+  // Testimonial State
+  const [testimonial, setTestimonial] = useState<LoginTestimonial | null>(null);
+  
+  // Load Logic for Dynamic Testimonials
+  useEffect(() => {
+      const allTestimonials = getLoginTestimonials().filter(t => t.isActive);
+      const config = getLoginTestimonialConfig();
+      
+      if (allTestimonials.length === 0) return;
+
+      // Limit items based on config
+      const activePool = allTestimonials.slice(0, config.maxItems);
+      
+      let selectedItem: LoginTestimonial;
+
+      if (config.displayMode === 'random') {
+          selectedItem = activePool[Math.floor(Math.random() * activePool.length)];
+      } else {
+          // Sequential Logic
+          const lastIndexStr = localStorage.getItem('magneto_login_sequence_index');
+          let nextIndex = 0;
+          
+          if (lastIndexStr) {
+              const lastIndex = parseInt(lastIndexStr);
+              nextIndex = (lastIndex + 1) % activePool.length;
+          }
+          
+          localStorage.setItem('magneto_login_sequence_index', nextIndex.toString());
+          selectedItem = activePool[nextIndex];
+      }
+
+      setTestimonial(selectedItem);
+  }, []);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -160,15 +117,17 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login' }) => {
       {/* --- LEFT SIDE: VISUAL (Desktop) --- */}
       <div className="hidden lg:flex w-[45%] relative bg-[#0a0a0a] flex-col justify-between overflow-hidden">
           {/* Background Image */}
-          <div className="absolute inset-0 z-0">
-             <div className="absolute inset-0 bg-black/40 z-10"></div>
-             {/* PERFORMANCE FIX: Reduced image resolution from w=2000 to w=1200 */}
-             <img 
-               src={currentVariant.bgImage} 
-               className="w-full h-full object-cover opacity-80 transition-opacity duration-1000"
-               alt="Gallery Wall"
-             />
-          </div>
+          {testimonial && (
+              <div className="absolute inset-0 z-0">
+                 <div className="absolute inset-0 bg-black/40 z-10"></div>
+                 {/* PERFORMANCE FIX: Reduced image resolution */}
+                 <img 
+                   src={testimonial.bgImage} 
+                   className="w-full h-full object-cover opacity-80 transition-opacity duration-1000"
+                   alt="Gallery Wall"
+                 />
+              </div>
+          )}
 
           {/* Logo on Image */}
           <div className="relative z-20 p-12">
@@ -181,23 +140,25 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login' }) => {
           </div>
 
           {/* Testimonial */}
-          <div className="relative z-20 p-12 max-w-lg animate-fade-in">
-              <div className="flex gap-1 mb-6 text-[#B8860B]">
-                  {[...Array(5)].map((_,i) => <Star key={i} size={18} fill="currentColor" strokeWidth={0} />)}
-              </div>
-              <blockquote className="text-3xl font-serif text-white leading-snug mb-6">
-                  "{currentVariant.quote}"
-              </blockquote>
-              <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 overflow-hidden">
-                      <img src={currentVariant.avatar} className="w-full h-full object-cover" alt="User" />
+          {testimonial && (
+              <div className="relative z-20 p-12 max-w-lg animate-fade-in">
+                  <div className="flex gap-1 mb-6 text-[#B8860B]">
+                      {[...Array(5)].map((_,i) => <Star key={i} size={18} fill={i < testimonial.rating ? "currentColor" : "none"} strokeWidth={0} />)}
                   </div>
-                  <div>
-                      <p className="text-white font-bold text-sm">{currentVariant.author}</p>
-                      <p className="text-white/60 text-xs uppercase tracking-widest">{currentVariant.role}</p>
+                  <blockquote className="text-3xl font-serif text-white leading-snug mb-6">
+                      "{testimonial.quote}"
+                  </blockquote>
+                  <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 overflow-hidden">
+                          <img src={testimonial.avatar} className="w-full h-full object-cover" alt="User" />
+                      </div>
+                      <div>
+                          <p className="text-white font-bold text-sm">{testimonial.author}</p>
+                          <p className="text-white/60 text-xs uppercase tracking-widest">{testimonial.role}</p>
+                      </div>
                   </div>
               </div>
-          </div>
+          )}
       </div>
 
       {/* --- RIGHT SIDE: FORM --- */}

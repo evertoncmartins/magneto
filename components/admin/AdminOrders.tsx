@@ -2,7 +2,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
     Package, Clock, Box, Truck, CheckCircle, ChevronDown, 
-    Loader2, Download, MapPin, Receipt, Search, X, ChevronLeft, ChevronRight, ZoomIn, Calendar, Layers
+    Loader2, Download, MapPin, Receipt, Search, X, ChevronLeft, ChevronRight, ZoomIn, Calendar, Layers,
+    Camera, Shield
 } from 'lucide-react';
 import { Order, MagnetItem } from '../../types';
 import { updateOrderStatus } from '../../services/mockService';
@@ -359,7 +360,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                         <div className="border-t border-gray-100 bg-[#FAFAFA] p-4 md:p-8 animate-fade-in rounded-b-xl cursor-default">
                                             
                                             {/* Status Timeline */}
-                                            <div className="mb-12 relative px-0 md:px-10 py-6 select-none">
+                                            <div className="mb-8 relative px-0 md:px-10 py-6 select-none">
                                                 <div className="absolute top-1/2 left-[12.5%] right-[12.5%] h-1 -translate-y-1/2 z-0 rounded-full overflow-hidden bg-gray-200">
                                                     <div 
                                                         className="h-full transition-all duration-500 ease-out bg-[#1d1d1f]"
@@ -457,43 +458,62 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                 Baixar Arquivos
                                             </button>
 
-                                            {/* Grouped Items Preview */}
+                                            {/* Grouped Items Preview with PER KIT consent badge */}
                                             {order.items && order.items.length > 0 && (
                                                 <div className="space-y-8">
                                                     <h4 className="text-[10px] font-bold text-[#B8860B] uppercase tracking-widest border-b border-gray-100 pb-2">Itens Separados por Kit</h4>
                                                     
-                                                    {Object.entries(groupedItems).map(([kitId, kitItems]) => (
-                                                        <div key={kitId} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-                                                            <div className="flex items-center gap-3 mb-4">
-                                                                <div className="p-1.5 bg-[#F5F5F7] rounded-md text-[#B8860B]">
-                                                                    <Layers size={14} />
-                                                                </div>
-                                                                <div>
-                                                                    <h5 className="text-[11px] font-bold text-[#1d1d1f] uppercase tracking-wider">{getKitName(kitItems.length)}</h5>
-                                                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{kitItems.length} fotos</p>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                                                                {kitItems.map((item, kitIdx) => (
-                                                                    <div 
-                                                                        key={item.id} 
-                                                                        className="w-20 h-20 rounded-lg border border-gray-200 p-1 bg-white shadow-sm shrink-0 cursor-zoom-in hover:border-[#B8860B] transition-colors relative group"
-                                                                        onClick={() => openLightbox(kitItems, kitIdx)}
-                                                                    >
-                                                                        <img 
-                                                                            src={item.croppedUrl || item.originalUrl} 
-                                                                            className="w-full h-full object-cover rounded"
-                                                                            alt={`Item ${kitIdx}`}
-                                                                        />
-                                                                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
-                                                                            <ZoomIn size={16} className="text-white drop-shadow-md"/>
+                                                    {Object.entries(groupedItems).map(([kitId, kitItems]) => {
+                                                        const consent = kitItems[0].socialConsent !== undefined ? kitItems[0].socialConsent : order.socialSharingConsent;
+                                                        
+                                                        return (
+                                                            <div key={kitId} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                                                                <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="p-1.5 bg-[#F5F5F7] rounded-md text-[#B8860B]">
+                                                                            <Layers size={14} />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h5 className="text-[11px] font-bold text-[#1d1d1f] uppercase tracking-wider">{getKitName(kitItems.length)}</h5>
+                                                                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{kitItems.length} fotos</p>
                                                                         </div>
                                                                     </div>
-                                                                ))}
+
+                                                                    {/* Per Kit Consent Badge */}
+                                                                    <div>
+                                                                        {consent ? (
+                                                                            <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm text-[9px] font-bold uppercase tracking-widest">
+                                                                                <Camera size={12} /> Uso Autorizado
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200 text-[9px] font-bold uppercase tracking-widest">
+                                                                                <Shield size={12} /> Privado
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                                                                    {kitItems.map((item, kitIdx) => (
+                                                                        <div 
+                                                                            key={item.id} 
+                                                                            className="w-20 h-20 rounded-lg border border-gray-200 p-1 bg-white shadow-sm shrink-0 cursor-zoom-in hover:border-[#B8860B] transition-colors relative group"
+                                                                            onClick={() => openLightbox(kitItems, kitIdx)}
+                                                                        >
+                                                                            <img 
+                                                                                src={item.croppedUrl || item.originalUrl} 
+                                                                                className="w-full h-full object-cover rounded"
+                                                                                alt={`Item ${kitIdx}`}
+                                                                            />
+                                                                            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
+                                                                                <ZoomIn size={16} className="text-white drop-shadow-md"/>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>

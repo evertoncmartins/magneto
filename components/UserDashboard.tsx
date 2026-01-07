@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { User, Order, Review, MagnetItem } from '../types';
 import { getUserOrders, getReviewByOrderId, submitReview, updateReview, getPricingRules } from '../services/mockService';
-import { Package, Clock, ChevronDown, Calendar, MapPin, CheckCircle, ShoppingBag, Truck, Loader2, X, Star, ImageIcon, Edit3, CornerUpLeft, Box, XCircle, AlertCircle, Layers, ZoomIn, Wallet, Receipt, MessageCircle } from 'lucide-react';
+import { Package, Clock, ChevronDown, Calendar, MapPin, CheckCircle, ShoppingBag, Truck, Loader2, X, Star, ImageIcon, Edit3, CornerUpLeft, Box, XCircle, AlertCircle, Layers, ZoomIn, Wallet, Receipt, MessageCircle, Camera, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 // @ts-ignore
 import heic2any from 'heic2any';
@@ -293,36 +293,53 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                 <div className="lg:col-span-7 space-y-10">
                                     
                                     {/* Kits List */}
-                                    {Object.entries(groupedItems).map(([kitId, items], kitIdx) => (
-                                        <div key={kitId} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                            <div className="flex items-center justify-between mb-6">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-[#1d1d1f] rounded-lg text-[#B8860B]">
-                                                        <Layers size={16} />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-bold text-[#1d1d1f] text-sm uppercase tracking-wider">{getKitName(items.length)}</h4>
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{items.length} fotos • Fine Art</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
-                                                {items.map((item, idx) => (
-                                                    <div 
-                                                        key={idx} 
-                                                        onClick={() => setLightboxImage(item.originalUrl || item.croppedUrl)}
-                                                        className="aspect-square rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shadow-sm cursor-zoom-in group relative"
-                                                    >
-                                                        <img src={item.croppedUrl} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                                                            <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" size={16} />
+                                    {Object.entries(groupedItems).map(([kitId, items], kitIdx) => {
+                                        const consent = items[0].socialConsent !== undefined ? items[0].socialConsent : order.socialSharingConsent;
+                                        
+                                        return (
+                                            <div key={kitId} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                                <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 bg-[#1d1d1f] rounded-lg text-[#B8860B]">
+                                                            <Layers size={16} />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-[#1d1d1f] text-sm uppercase tracking-wider">{getKitName(items.length)}</h4>
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{items.length} fotos • Fine Art</p>
                                                         </div>
                                                     </div>
-                                                ))}
+
+                                                    {/* Per Kit Consent Badge */}
+                                                    <div>
+                                                        {consent ? (
+                                                            <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm text-[9px] font-bold uppercase tracking-widest">
+                                                                <Camera size={12} /> Uso Autorizado
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200 text-[9px] font-bold uppercase tracking-widest">
+                                                                <Shield size={12} /> Privado
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
+                                                    {items.map((item, idx) => (
+                                                        <div 
+                                                            key={idx} 
+                                                            onClick={() => setLightboxImage(item.originalUrl || item.croppedUrl)}
+                                                            className="aspect-square rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shadow-sm cursor-zoom-in group relative"
+                                                        >
+                                                            <img src={item.croppedUrl} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                                                <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" size={16} />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
 
                                     {/* REVIEW SECTION */}
                                     {order.status === 'delivered' && (
@@ -477,6 +494,8 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                 {/* Right Column: Logistics & Finance (5/12) */}
                                 <div className="lg:col-span-5 space-y-6">
                                     
+                                    {/* --- REMOVIDO: Badge de Consentimento Geral (agora por Kit) --- */}
+
                                     <h4 className="text-[10px] font-bold text-[#B8860B] uppercase tracking-[0.3em] flex items-center gap-2">
                                         Detalhes do Envio
                                     </h4>

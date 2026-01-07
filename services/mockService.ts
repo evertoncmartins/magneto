@@ -1,5 +1,5 @@
 
-import { Coupon, ProductTier, Order, User, MagnetItem, Review, PageContent, FAQ, FAQCategory } from '../types';
+import { Coupon, ProductTier, Order, User, MagnetItem, Review, PageContent, FAQ, FAQCategory, LoginTestimonial, LoginTestimonialSettings } from '../types';
 
 // --- INDEXED DB HELPERS (For Infinite Storage) ---
 const DB_NAME = 'MagnetoDB';
@@ -452,6 +452,16 @@ export const moderateReview = (reviewId: string, status: 'approved' | 'rejected'
             MOCK_REVIEWS[idx].rejectionReason = undefined;
         }
         persist('magneto_reviews', MOCK_REVIEWS);
+
+        // --- REGRA DE NEGÓCIO: Sincronização Automática ---
+        // Se o review deixar de ser "approved", removemos ele da lista de depoimentos do login para manter a consistência
+        if (status !== 'approved') {
+            const testimonialIndex = LOGIN_TESTIMONIALS.findIndex(t => t.originalReviewId === reviewId);
+            if (testimonialIndex >= 0) {
+                LOGIN_TESTIMONIALS.splice(testimonialIndex, 1);
+                persist('magneto_login_testimonials', LOGIN_TESTIMONIALS);
+            }
+        }
     }
 };
 
@@ -735,6 +745,101 @@ export const getSiteContent = (): PageContent[] => SITE_CONTENT;
 export const updateSiteContent = (content: PageContent[]) => {
     SITE_CONTENT = content;
     persist('magneto_cms', SITE_CONTENT);
+};
+
+// --- LOGIN TESTIMONIALS SERVICE ---
+
+// Dados iniciais para não quebrar o layout (antigo hardcoded no Auth.tsx)
+const INITIAL_LOGIN_TESTIMONIALS: LoginTestimonial[] = [
+    {
+        id: 'lt-1',
+        quote: "A qualidade da impressão superou todas as minhas expectativas. É arte pura na minha geladeira.",
+        author: "Sofia M.",
+        role: "Arquiteta • SP",
+        bgImage: "https://images.unsplash.com/photo-1493863641943-9b68992a8d07?q=80&w=1200&auto=format&fit=crop",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+        rating: 5,
+        isActive: true,
+        source: 'manual',
+        createdAt: '2023-10-01'
+    },
+    {
+        id: 'lt-2',
+        quote: "Transformou as fotos da nossa viagem de lua de mel em uma galeria diária. O acabamento fosco é incrível.",
+        author: "Lucas & Bia",
+        role: "Recém-casados • RJ",
+        bgImage: "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?q=80&w=1200&auto=format&fit=crop",
+        avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&q=80",
+        rating: 5,
+        isActive: true,
+        source: 'manual',
+        createdAt: '2023-10-05'
+    },
+    {
+        id: 'lt-3',
+        quote: "A melhor forma de ver meu filho crescer todos os dias enquanto preparo o café. Embalagem impecável.",
+        author: "Mariana T.",
+        role: "Mãe & Designer • MG",
+        bgImage: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?q=80&w=1200&auto=format&fit=crop",
+        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80",
+        rating: 5,
+        isActive: true,
+        source: 'manual',
+        createdAt: '2023-10-10'
+    }
+];
+
+const INITIAL_LOGIN_SETTINGS: LoginTestimonialSettings = {
+    displayMode: 'random',
+    maxItems: 5
+};
+
+let LOGIN_TESTIMONIALS: LoginTestimonial[] = retrieve('magneto_login_testimonials', INITIAL_LOGIN_TESTIMONIALS);
+let LOGIN_SETTINGS: LoginTestimonialSettings = retrieve('magneto_login_settings', INITIAL_LOGIN_SETTINGS);
+
+export const getLoginTestimonials = (): LoginTestimonial[] => LOGIN_TESTIMONIALS;
+
+export const getLoginTestimonialConfig = (): LoginTestimonialSettings => LOGIN_SETTINGS;
+
+export const addLoginTestimonial = (testimonial: Omit<LoginTestimonial, 'id' | 'createdAt'>) => {
+    // --- REGRA DE NEGÓCIO: Integridade de Importação ---
+    // Apenas reviews com status 'approved' podem ser importados.
+    if (testimonial.source === 'review' && testimonial.originalReviewId) {
+        const originalReview = MOCK_REVIEWS.find(r => r.id === testimonial.originalReviewId);
+        if (!originalReview || originalReview.status !== 'approved') {
+            console.error("Tentativa de importar review não aprovado bloqueada.");
+            return; // Bloqueia a criação silenciosamente
+        }
+    }
+
+    const newItem: LoginTestimonial = {
+        ...testimonial,
+        id: `lt-${Date.now()}`,
+        createdAt: new Date().toLocaleDateString('pt-BR')
+    };
+    LOGIN_TESTIMONIALS.unshift(newItem);
+    persist('magneto_login_testimonials', LOGIN_TESTIMONIALS);
+};
+
+export const updateLoginTestimonial = (id: string, updates: Partial<LoginTestimonial>) => {
+    LOGIN_TESTIMONIALS = LOGIN_TESTIMONIALS.map(t => t.id === id ? { ...t, ...updates } : t);
+    persist('magneto_login_testimonials', LOGIN_TESTIMONIALS);
+};
+
+// Reordena e persiste a nova ordem
+export const reorderLoginTestimonials = (newOrder: LoginTestimonial[]) => {
+    LOGIN_TESTIMONIALS = newOrder;
+    persist('magneto_login_testimonials', LOGIN_TESTIMONIALS);
+};
+
+export const deleteLoginTestimonial = (id: string) => {
+    LOGIN_TESTIMONIALS = LOGIN_TESTIMONIALS.filter(t => t.id !== id);
+    persist('magneto_login_testimonials', LOGIN_TESTIMONIALS);
+};
+
+export const updateLoginTestimonialSettings = (settings: Partial<LoginTestimonialSettings>) => {
+    LOGIN_SETTINGS = { ...LOGIN_SETTINGS, ...settings };
+    persist('magneto_login_settings', LOGIN_SETTINGS);
 };
 
 // --- DASHBOARD CHARTS ---

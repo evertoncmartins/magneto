@@ -8,7 +8,7 @@ import {
 import { 
     Package, Users, Ticket, Menu, TrendingUp, Tag, MessageSquare, 
     LogOut, Home, X, PenTool, LayoutGrid, Info, Search, 
-    Activity, Server, Database, HelpCircle, ChevronLeft, ChevronRight
+    Activity, Server, Database, HelpCircle, ChevronLeft, ChevronRight, Quote
 } from 'lucide-react';
 import { Order, User, Coupon, ProductTier, Review, PageContent, FAQ } from '../types';
 
@@ -22,6 +22,7 @@ import AdminPricing from './admin/AdminPricing';
 import AdminReviews from './admin/AdminReviews';
 import AdminCMS from './admin/AdminCMS';
 import AdminFAQ from './admin/AdminFAQ';
+import AdminLoginTestimonials from './admin/AdminLoginTestimonials';
 import AdminUserModal from './admin/modals/AdminUserModal';
 import AdminCouponModal from './admin/modals/AdminCouponModal';
 import AdminUserHistoryModal from './admin/modals/AdminUserHistoryModal';
@@ -33,7 +34,7 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder }) => {
   // Navigation & UI State
-  const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'orders' | 'users' | 'coupons' | 'pricing' | 'reviews' | 'cms' | 'faq'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'orders' | 'users' | 'coupons' | 'pricing' | 'reviews' | 'cms' | 'faq' | 'login-testimonials'>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Desktop
   
@@ -226,6 +227,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
 
                   <SidebarItem id="faq" icon={HelpCircle} label="Perguntas Freq." />
                   <SidebarItem id="cms" icon={PenTool} label="Conteúdo (CMS)" />
+                  <SidebarItem id="login-testimonials" icon={Quote} label="Depoimentos Login" />
               </nav>
 
               <div className="mt-auto border-t border-gray-100 pt-4">
@@ -268,6 +270,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
                           {activeTab === 'cms' && 'Gerenciamento de Conteúdo'}
                           {activeTab === 'pricing' && 'Planos & Preços'}
                           {activeTab === 'faq' && 'Gerenciamento de FAQ'}
+                          {activeTab === 'login-testimonials' && 'Depoimentos da Tela de Login'}
                       </h2>
                       <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Bem-vindo de volta, Admin.</p>
                   </div>
@@ -396,6 +399,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
                       faqs={faqs}
                       refreshData={refreshData}
                   />
+              )}
+
+              {activeTab === 'login-testimonials' && (
+                  <AdminLoginTestimonials />
               )}
           </div>
       </main>

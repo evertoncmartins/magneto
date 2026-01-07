@@ -137,3 +137,24 @@ export interface PageContent {
   title: string;
   sections: PageSection[];
 }
+
+// --- LOGIN TESTIMONIALS ---
+export interface LoginTestimonial {
+  id: string;
+  quote: string;
+  author: string;
+  role: string; // Ex: "Arquiteta • SP"
+  avatar: string;
+  bgImage: string;
+  rating: number; // 1-5
+  isActive: boolean;
+  source: 'manual' | 'review'; // Se veio de input manual ou importado de review
+  originalReviewId?: string; // Link se veio de review
+  isEdited?: boolean; // Flag para indicar se uma importação foi alterada
+  createdAt: string;
+}
+
+export interface LoginTestimonialSettings {
+  displayMode: 'random' | 'sequential';
+  maxItems: number;
+}
