@@ -197,6 +197,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
               </div>
 
               <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
+                  {/* SEÇÃO PRINCIPAL */}
                   {!isSidebarCollapsed && <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 mt-2 truncate">Principal</p>}
                   {isSidebarCollapsed && <div className="h-4"></div>}
                   
@@ -204,6 +205,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
                   <SidebarItem id="orders" icon={Package} label="Pedidos" count={orders.filter(o => o.status === 'pending').length || undefined} />
                   <SidebarItem id="finance" icon={TrendingUp} label="Financeiro" />
                   
+                  {/* SEÇÃO GESTÃO DE NEGÓCIO */}
                   {!isSidebarCollapsed ? (
                       <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-8 mb-3 truncate">Gestão</p>
                   ) : (
@@ -214,6 +216,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
                   <SidebarItem id="coupons" icon={Ticket} label="Cupons" />
                   <SidebarItem id="pricing" icon={Tag} label="Preços" />
                   <SidebarItem id="reviews" icon={MessageSquare} label="Avaliações" count={reviews.filter(r => r.status === 'pending').length || undefined} />
+
+                  {/* SEÇÃO CONTEÚDO DO PORTAL */}
+                  {!isSidebarCollapsed ? (
+                      <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-8 mb-3 truncate">Conteúdo do Portal</p>
+                  ) : (
+                      <div className="my-4 border-t border-gray-100 mx-2"></div>
+                  )}
+
                   <SidebarItem id="faq" icon={HelpCircle} label="Perguntas Freq." />
                   <SidebarItem id="cms" icon={PenTool} label="Conteúdo (CMS)" />
               </nav>
