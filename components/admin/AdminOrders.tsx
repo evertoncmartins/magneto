@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { 
     Package, Clock, Box, Truck, CheckCircle, ChevronDown, 
     Loader2, Download, MapPin, Receipt, Search, X, ChevronLeft, ChevronRight, ZoomIn, Calendar, Layers,
@@ -76,6 +76,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
     // User Search inside Modal
     const [userSearchTerm, setUserSearchTerm] = useState('');
     const [showUserDropdown, setShowUserDropdown] = useState(false);
+    const userSearchInputRef = useRef<HTMLInputElement>(null);
     
     // Date Filters
     const [dateStart, setDateStart] = useState('');
@@ -224,6 +225,12 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
             setUserSearchTerm(user.name);
             setShowUserDropdown(false);
         }
+    };
+
+    const handleClearUserSearch = () => {
+        setUserSearchTerm('');
+        userSearchInputRef.current?.focus();
+        setShowUserDropdown(true);
     };
 
     const saveEditOrder = () => {
@@ -647,14 +654,24 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                     <input 
                                         type="text"
                                         placeholder="Buscar por nome ou e-mail..."
-                                        className="w-full h-12 pl-12 pr-4 bg-[#F5F5F7] rounded-lg text-sm border border-transparent focus:bg-white focus:border-[#B8860B] outline-none transition-all placeholder:text-gray-400"
+                                        className="w-full h-12 pl-12 pr-10 bg-[#F5F5F7] rounded-lg text-sm border border-transparent focus:bg-white focus:border-[#B8860B] outline-none transition-all placeholder:text-gray-400"
                                         value={userSearchTerm}
                                         onChange={(e) => {
                                             setUserSearchTerm(e.target.value);
                                             setShowUserDropdown(true);
                                         }}
                                         onFocus={() => setShowUserDropdown(true)}
+                                        ref={userSearchInputRef}
                                     />
+                                    {userSearchTerm && (
+                                        <button 
+                                            onClick={handleClearUserSearch}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#B8860B] bg-[#F5F5F7] hover:bg-gray-100 rounded-full p-1 transition-all"
+                                            title="Limpar busca"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
                                     
                                     {/* Dropdown Results */}
                                     {showUserDropdown && userSearchTerm && (
