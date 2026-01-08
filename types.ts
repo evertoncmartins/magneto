@@ -103,6 +103,7 @@ export interface Order {
   reviewId?: string;
   socialSharingConsent?: boolean;
   createdByAdmin?: boolean;
+  deleted?: boolean; // Flag para exclusão lógica
 }
 
 // Substituindo PricingRule por ProductTier para estratégia de Kits

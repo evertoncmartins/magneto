@@ -6,11 +6,11 @@ import {
     Aperture, Check, RotateCcw, ZoomIn, ZoomOut, ShoppingBag,
     Info, AlertCircle, LayoutGrid, Camera, Wand2, Sparkles, Monitor, Ruler,
     Copy, ChevronLeft, ChevronRight, ArrowRight, Loader2, CheckCircle, ToggleLeft, ToggleRight,
-    Scissors, RefreshCw
+    Scissors, RefreshCw, Shield, Save
 } from 'lucide-react';
-import { MagnetItem, ImageAdjustments, ProductTier } from '../types';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { saveImageToDB, getImageFromDB } from '../services/mockService';
+import { MagnetItem, ImageAdjustments, ProductTier, Order } from '../types';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { saveImageToDB, getImageFromDB, getOrderById, updateOrderDetails } from '../services/mockService';
 // @ts-ignore
 import heic2any from 'heic2any';
 
@@ -144,12 +144,20 @@ interface StudioProps {
 const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { orderId } = useParams(); // Capture Admin Mode Order ID
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // States for Admin Mode - Initialize strictly based on URL path to prevent race conditions
+    const [isAdminMode, setIsAdminMode] = useState(() => location.pathname.includes('/admin/studio/'));
+    const [adminOrder, setAdminOrder] = useState<Order | null>(null);
+    
+    // Identifica qual kit está sendo editado (se passado pelo AdminOrders)
+    const kitIdToEdit = location.state?.kitIdToEdit;
 
     const [images, setImages] = useState<MagnetItem[]>(() => {
         const isEditing = location.state?.isEditing;
         
-        // RECUPERAÇÃO DE DADOS DE EDIÇÃO
+        // RECUPERAÇÃO DE DADOS DE EDIÇÃO (Client Side)
         const transferKit = isEditing ? (window as any).magnetoEditKit as MagnetItem[] | undefined : undefined;
         const propsKit = (initialImages && initialImages.length > 0) ? initialImages : undefined;
         const locKit = location.state?.editingKit as MagnetItem[] | undefined;
@@ -166,10 +174,42 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
         return images.length > 0 ? 'gallery' : 'upload';
     });
 
+    // Check for Admin Edit Mode
+    useEffect(() => {
+        if (orderId && location.pathname.includes('/admin/studio/')) {
+            setIsAdminMode(true);
+            const order = getOrderById(orderId);
+            if (order && order.items) {
+                setAdminOrder(order);
+                
+                // Se existe um kitIdToEdit, carregamos APENAS as fotos desse kit
+                // Se não existe, carrega tudo (fallback legado)
+                let itemsToLoad = order.items;
+                
+                if (kitIdToEdit) {
+                    itemsToLoad = order.items.filter(item => {
+                        const itemKitId = item.kitId || 'avulso';
+                        return itemKitId === kitIdToEdit;
+                    });
+                }
+
+                setImages(normalizeItems(itemsToLoad));
+                setView('gallery');
+            } else {
+                alert("Pedido não encontrado.");
+                navigate('/admin');
+            }
+        }
+    }, [orderId, location.pathname, navigate, kitIdToEdit]);
+
+    // Determine target count: Admin (flexible/locked to existing) vs Client (Tier based)
     const selectedTier: ProductTier | undefined = location.state?.tier;
-    // --- MUDANÇA PRINCIPAL: TRAVA O CONTADOR NO TIER SELECIONADO ---
-    // O fallback '9' é apenas segurança, mas o fluxo deve sempre vir com um tier.
-    const targetCount = selectedTier?.photoCount || 9;
+    
+    // Se estiver editando um kit específico no admin, o alvo é o tamanho desse kit
+    // Se estiver editando o pedido inteiro (legado), usa itemsCount ou length.
+    const targetCount = isAdminMode 
+        ? (kitIdToEdit ? images.length : (adminOrder?.itemsCount || images.length || 9))
+        : (selectedTier?.photoCount || 9);
 
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editTab, setEditTab] = useState<'crop' | 'adjust' | 'filters'>('crop');
@@ -189,27 +229,29 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
     const [tempCartItems, setTempCartItems] = useState<MagnetItem[]>([]);
 
     useEffect(() => {
-        if (images.length === 0 && initialImages && initialImages.length > 0) {
+        if (!isAdminMode && images.length === 0 && initialImages && initialImages.length > 0) {
             const normalized = normalizeItems(initialImages);
             setImages(normalized);
             setView('gallery');
         }
-    }, [initialImages, images.length]);
+    }, [initialImages, images.length, isAdminMode]);
 
     // Safety check for lost edit state
     useEffect(() => {
         const isEditing = location.state?.isEditing;
-        if (isEditing && images.length === 0 && (window as any).magnetoEditKit) {
+        if (!isAdminMode && isEditing && images.length === 0 && (window as any).magnetoEditKit) {
              const recovered = normalizeItems((window as any).magnetoEditKit);
              if (recovered.length > 0) {
                  setImages(recovered);
                  setView('gallery');
              }
         }
-    }, [location.state, images.length]);
+    }, [location.state, images.length, isAdminMode]);
 
     useEffect(() => {
-        if (images.length === 0 && !selectedTier && !location.state?.isEditing) {
+        // Redirection Safety Check: Only redirect if definitely NOT in admin mode
+        const isPathAdmin = location.pathname.includes('/admin/studio/');
+        if (!isPathAdmin && !isAdminMode && images.length === 0 && !selectedTier && !location.state?.isEditing) {
             navigate('/studio');
             return;
         }
@@ -244,7 +286,7 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
         };
 
         rehydrateHighRes();
-    }, []);
+    }, [isAdminMode, location.pathname]); // Depend on location pathname to re-verify on route change
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -253,7 +295,7 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
             const remaining = Math.max(0, targetCount - images.length);
             
             if (remaining === 0) {
-                alert(`O seu kit de ${targetCount} fotos já está completo!`);
+                alert(`O kit de ${targetCount} fotos já está completo!`);
                 e.target.value = '';
                 return;
             }
@@ -323,7 +365,8 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
     const deleteImage = (index: number) => {
         const newImages = images.filter((_, i) => i !== index);
         setImages(newImages);
-        if (newImages.length === 0) setView('upload'); 
+        if (newImages.length === 0 && !isAdminMode) setView('upload'); 
+        // Admin stays in gallery even if empty
     };
 
     const duplicateImage = (index: number) => {
@@ -428,24 +471,27 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
         }
         
         setIsProcessing(true);
-        setProcessingMessage('Gerando kit final...');
+        setProcessingMessage(isAdminMode ? 'Salvando alterações do pedido...' : 'Gerando kit final...');
         setProgress({ current: 0, total: images.length });
 
         try {
-            const existingKitId = images[0].kitId || `kit-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+            // ID de Kit padrão: se tiver editando um específico, usa ele. Se não, usa o primeiro ou cria um novo.
+            // Para admin editando um kit especifico, o kitIdToEdit é crucial.
+            const existingKitId = kitIdToEdit || images[0].kitId || `kit-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
 
             const processedItems: MagnetItem[] = [];
             
             for (let i = 0; i < images.length; i++) {
                 const img = images[i];
                 
-                setProcessingMessage(`Finalizando ${i + 1} de ${images.length}...`);
+                setProcessingMessage(`Processando ${i + 1} de ${images.length}...`);
                 setProgress({ current: i + 1, total: images.length });
                 await new Promise(resolve => setTimeout(resolve, 20));
 
                 const fetchUrl = img.originalUrl || img.backupSrc || img.croppedUrl;
                 if (!fetchUrl) {
-                    processedItems.push({ ...img, kitId: existingKitId }); // No consent here yet
+                    // Se não tiver URL, mantém, mas garante o kitId correto (importante para merge)
+                    processedItems.push({ ...img, kitId: existingKitId }); 
                     continue;
                 }
 
@@ -463,26 +509,50 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
 
                     processedItems.push({ 
                         ...img,
-                        kitId: existingKitId,
+                        kitId: existingKitId, 
                         originalUrl: '', 
                         backupSrc: '', 
                         croppedUrl: displayUrl, 
                         highResUrl: '',  
-                        // socialConsent is applied later
                     });
                 } catch (err) {
                     console.error("Error processing item", err);
                     processedItems.push({ ...img, kitId: existingKitId, backupSrc: img.croppedUrl });
                 }
             }
-            // Save to temp state NOT directly to cart
-            setTempCartItems(processedItems);
-            setView('success');
+
+            if (isAdminMode && adminOrder) {
+                // ADMIN SAVE
+                // Se estamos editando um kit específico, precisamos fazer um MERGE inteligente:
+                // Removemos os itens antigos desse kit e colocamos os novos no lugar.
+                let finalItemsToSave = processedItems;
+
+                if (kitIdToEdit) {
+                    // Mantém os itens que NÃO são deste kit
+                    const otherItems = adminOrder.items?.filter(item => {
+                        const itemKitId = item.kitId || 'avulso';
+                        return itemKitId !== kitIdToEdit;
+                    }) || [];
+                    
+                    // Junta com os itens processados deste kit
+                    finalItemsToSave = [...otherItems, ...processedItems];
+                }
+
+                updateOrderDetails(adminOrder.id, { items: finalItemsToSave });
+                setIsProcessing(false);
+                // REDIRECT TO ADMIN ORDERS DASHBOARD WITH PRE-FILLED SEARCH
+                navigate('/admin', { state: { activeTab: 'orders', searchOrderId: adminOrder.id } });
+            } else {
+                // USER FLOW
+                setTempCartItems(processedItems);
+                setView('success');
+                setIsProcessing(false);
+            }
         } catch (err) {
             console.error(err);
             alert('Erro ao processar kit.');
-        } finally {
             setIsProcessing(false);
+        } finally {
             setProgress({ current: 0, total: 0 });
         }
     };
@@ -530,13 +600,23 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center p-6">
                 <div className="w-full max-w-xl text-center animate-fade-in">
+                    {/* Admin Banner */}
+                    {isAdminMode && (
+                        <div className="bg-[#1d1d1f] text-white py-3 px-4 rounded-md mb-8 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest shadow-lg">
+                            <Shield size={14} className="text-[#B8860B]" /> Modo Administrativo: Edição de Pedido
+                        </div>
+                    )}
+
                     <div className="w-16 h-16 bg-[#1d1d1f] text-[#B8860B] rounded-md flex items-center justify-center mx-auto mb-10 shadow-lg">
                         <Upload size={32} />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#B8860B] mb-2 block">{selectedTier?.name || 'Novo Kit'}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#B8860B] mb-2 block">{isAdminMode ? `Pedido #${adminOrder?.id}` : (selectedTier?.name || 'Novo Kit')}</span>
                     <h1 className="text-4xl md:text-5xl font-serif text-[#1d1d1f] mb-6 tracking-tight">Primeiro, suas fotos.</h1>
                     <p className="text-lg text-[#86868b] mb-12 max-w-sm mx-auto leading-relaxed font-light">
-                        Selecione suas memórias favoritas para criar um conjunto exclusivo de {targetCount} ímãs Fine Art.
+                        {isAdminMode 
+                            ? `Você está editando um kit existente de ${targetCount} fotos.`
+                            : `Selecione suas memórias favoritas para criar um conjunto exclusivo de ${targetCount} ímãs Fine Art.`
+                        }
                     </p>
                     
                     <button 
@@ -580,9 +660,14 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
                         onChange={handleFileUpload} 
                     />
                     
-                    {!isProcessing && (
+                    {!isProcessing && !isAdminMode && (
                         <button onClick={() => navigate('/studio')} className="mt-12 text-[#86868b] font-bold hover:text-[#1d1d1f] transition-colors uppercase tracking-[0.2em] text-[10px] border-b border-transparent hover:border-[#1d1d1f]">
                             Alterar Kit
+                        </button>
+                    )}
+                    {isAdminMode && (
+                        <button onClick={() => navigate('/admin')} className="mt-12 text-red-500 font-bold hover:text-red-700 transition-colors uppercase tracking-[0.2em] text-[10px] border-b border-transparent hover:border-red-700">
+                            Cancelar Edição
                         </button>
                     )}
                 </div>
@@ -606,17 +691,27 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
         
         return (
             <div className="min-h-screen bg-[#F5F5F7] flex flex-col animate-fade-in">
-                <div className="h-16 bg-white/95 backdrop-blur-md border-b border-gray-100 px-6 flex justify-between items-center sticky top-0 z-40 shadow-sm">
+                {/* Header */}
+                <div className={`h-16 border-b border-gray-100 px-6 flex justify-between items-center sticky top-0 z-40 shadow-sm ${isAdminMode ? 'bg-[#1d1d1f] text-white' : 'bg-white/95 backdrop-blur-md'}`}>
                     <div className="flex items-center gap-4">
-                        <span className="font-serif font-bold text-xl text-[#1d1d1f] tracking-tight flex items-center gap-2">
-                             <LayoutGrid size={20} className="text-[#B8860B]" /> Studio Magneto
+                        <span className={`font-serif font-bold text-xl tracking-tight flex items-center gap-2 ${isAdminMode ? 'text-white' : 'text-[#1d1d1f]'}`}>
+                             <LayoutGrid size={20} className="text-[#B8860B]" /> {isAdminMode ? `Admin Studio #${adminOrder?.id}` : 'Studio Magneto'}
                         </span>
-                        <div className="hidden sm:flex items-center gap-2 bg-[#F5F5F7] px-3 py-1 rounded-md border border-gray-100">
-                             <Ruler size={14} className="text-[#B8860B]" />
-                             <span className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-wide">Tamanho: 50x50mm</span>
-                        </div>
+                        {!isAdminMode && (
+                            <div className="hidden sm:flex items-center gap-2 bg-[#F5F5F7] px-3 py-1 rounded-md border border-gray-100">
+                                 <Ruler size={14} className="text-[#B8860B]" />
+                                 <span className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-wide">Tamanho: 50x50mm</span>
+                            </div>
+                        )}
+                        {isAdminMode && (
+                            <span className="bg-[#B8860B] text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">
+                                Modo Edição
+                            </span>
+                        )}
                     </div>
-                    <button onClick={() => navigate('/')} className="p-2 hover:bg-gray-100 rounded-md transition-colors"><X size={20} className="text-[#1d1d1f]" /></button>
+                    <button onClick={() => navigate(isAdminMode ? '/admin' : '/')} className={`p-2 rounded-md transition-colors ${isAdminMode ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-[#1d1d1f]'}`}>
+                        <X size={20} />
+                    </button>
                 </div>
                 
                 <div className="flex-1 overflow-y-auto py-8 md:py-12 px-6 max-w-6xl mx-auto w-full">
@@ -770,7 +865,13 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
                             disabled={isProcessing}
                             className={`w-full md:w-auto md:px-12 py-4 rounded-md font-bold text-xs uppercase tracking-[0.2em] shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95 ${images.length === targetCount ? 'bg-[#1d1d1f] text-white hover:bg-black' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
                         >
-                            {isProcessing ? <div className="flex items-center gap-3"><Loader2 size={16} className="animate-spin" /> Processando...</div> : <><ShoppingBag size={16} /> {images.length < targetCount ? `Adicione +${targetCount - images.length} Fotos` : 'Finalizar Kit'}</>}
+                            {isProcessing ? (
+                                <div className="flex items-center gap-3"><Loader2 size={16} className="animate-spin" /> Processando...</div>
+                            ) : isAdminMode ? (
+                                <><Save size={16} /> Salvar Alterações (Admin)</>
+                            ) : (
+                                <><ShoppingBag size={16} /> {images.length < targetCount ? `Adicione +${targetCount - images.length} Fotos` : 'Finalizar Kit'}</>
+                            )}
                         </button>
                     </div>
                 </div>

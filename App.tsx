@@ -463,6 +463,9 @@ const App: React.FC = () => {
                 {/* App Routes */}
                 <Route path="/studio" element={<PricingSelection />} /> {/* Step 1: Select Tier */}
                 <Route path="/studio/upload" element={<Studio addToCart={addToCart} initialImages={studioDraft} />} /> {/* Step 2: Upload */}
+                <Route path="/admin/studio/:orderId" element={
+                    user?.isAdmin ? <Studio addToCart={() => {}} /> : <Navigate to="/login" />
+                } />
                 <Route path="/reviews" element={<ReviewsPage />} />
                 <Route path="/cart" element={
                     <Cart 

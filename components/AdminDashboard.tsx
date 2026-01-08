@@ -11,6 +11,7 @@ import {
     Activity, Server, Database, HelpCircle, ChevronLeft, ChevronRight, Quote
 } from 'lucide-react';
 import { Order, User, Coupon, ProductTier, Review, PageContent, FAQ } from '../types';
+import { useLocation } from 'react-router-dom';
 
 // Import Sub-components
 import AdminOverview from './admin/AdminOverview';
@@ -55,7 +56,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
   // Filters
   const [globalSearch, setGlobalSearch] = useState('');
   // Lifted State for Orders Status Filter
-  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | Order['status']>('all');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | Order['status'] | 'deleted'>('all');
   
   // Modals
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -65,6 +66,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
   // History Modal State
   const [historyUser, setHistoryUser] = useState<User | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+
+  const location = useLocation();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -76,6 +79,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Handle Redirect from Studio with Search Param
+  useEffect(() => {
+      if (location.state?.searchOrderId) {
+          setGlobalSearch(location.state.searchOrderId);
+          setActiveTab('orders');
+          // Reset status filter to show the searched order regardless of status
+          setOrderStatusFilter('all');
+          // Scroll to top
+          window.scrollTo(0, 0);
+      }
+  }, [location.state]);
 
   // --- ACTIONS ---
 

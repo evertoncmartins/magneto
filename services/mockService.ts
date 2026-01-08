@@ -686,22 +686,50 @@ export const updateOrderStatus = (orderId: string, newStatus: Order['status']) =
     }
 };
 
+export const updateOrderDetails = (orderId: string, updates: Partial<Order>) => {
+    ALL_ORDERS = ALL_ORDERS.map(o => o.id === orderId ? { ...o, ...updates } : o);
+    persist('magneto_orders', ALL_ORDERS);
+};
+
+export const softDeleteOrder = (orderId: string) => {
+    const order = ALL_ORDERS.find(o => o.id === orderId);
+    if (order) {
+        order.deleted = true;
+        persist('magneto_orders', ALL_ORDERS);
+    }
+};
+
+export const restoreOrder = (orderId: string) => {
+    const order = ALL_ORDERS.find(o => o.id === orderId);
+    if (order) {
+        order.deleted = false;
+        persist('magneto_orders', ALL_ORDERS);
+    }
+};
+
 export const getUserOrders = (userId: string): Promise<Order[]> => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(ALL_ORDERS.filter(o => o.userId === userId));
+      // Retorna apenas pedidos não deletados para o usuário
+      resolve(ALL_ORDERS.filter(o => o.userId === userId && !o.deleted));
     }, 500);
   });
 };
 
-export const getAdminOrders = (): Order[] => ALL_ORDERS;
+export const getOrderById = (orderId: string): Order | undefined => {
+    return ALL_ORDERS.find(o => o.id === orderId);
+}
+
+export const getAdminOrders = (): Order[] => ALL_ORDERS; // Admin vê tudo, filtragem no componente
 
 export const getFinancialStats = () => {
-    const totalRevenue = ALL_ORDERS.reduce((acc, curr) => acc + curr.total, 0);
-    const totalOrders = ALL_ORDERS.length;
+    // Statística ignora pedidos deletados? Geralmente sim para receita
+    const activeOrders = ALL_ORDERS.filter(o => !o.deleted);
+    const totalRevenue = activeOrders.reduce((acc, curr) => acc + curr.total, 0);
+    const totalOrders = activeOrders.length;
     const avgTicket = totalRevenue / totalOrders || 0;
     
-    const monthlyRevenue = ALL_ORDERS.reduce((acc: any, order) => {
+    const monthlyRevenue = activeOrders.reduce((acc: any, order) => {
         const month = order.date.split('/')[1];
         const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
         const key = monthNames[parseInt(month) - 1];
