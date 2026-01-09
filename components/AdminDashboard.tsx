@@ -8,10 +8,10 @@ import {
 import { 
     Package, Users, Ticket, Menu, TrendingUp, Tag, MessageSquare, 
     LogOut, Home, X, PenTool, LayoutGrid, Info, Search, 
-    Activity, Server, Database, HelpCircle, ChevronLeft, ChevronRight, Quote
+    Activity, Server, Database, HelpCircle, ChevronLeft, ChevronRight, Quote, User
 } from 'lucide-react';
-import { Order, User, Coupon, ProductTier, Review, PageContent, FAQ } from '../types';
-import { useLocation } from 'react-router-dom';
+import { Order, User as UserType, Coupon, ProductTier, Review, PageContent, FAQ } from '../types';
+import { useLocation, Link } from 'react-router-dom';
 
 // Import Sub-components
 import AdminOverview from './admin/AdminOverview';
@@ -30,7 +30,7 @@ import AdminUserHistoryModal from './admin/modals/AdminUserHistoryModal';
 
 interface AdminDashboardProps {
     onLogout: () => void;
-    onStartOrder: (targetUser: User) => void;
+    onStartOrder: (targetUser: UserType) => void;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder }) => {
@@ -42,10 +42,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
   // Info Dropdown State
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const infoRef = useRef<HTMLDivElement>(null);
+
+  // Mobile Profile Dropdown State
+  const [isMobileProfileOpen, setIsMobileProfileOpen] = useState(false);
+  const mobileProfileRef = useRef<HTMLDivElement>(null);
   
   // Data States
   const [orders, setOrders] = useState<Order[]>(getAdminOrders());
-  const [users, setUsers] = useState<User[]>(getUsers());
+  const [users, setUsers] = useState<UserType[]>(getUsers());
   const [coupons, setCoupons] = useState<Coupon[]>(getCoupons());
   const [reviews, setReviews] = useState<Review[]>(getReviews());
   const [finance, setFinance] = useState(getFinancialStats());
@@ -60,20 +64,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
   
   // Modals
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<UserType | null>(null);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   
   // History Modal State
-  const [historyUser, setHistoryUser] = useState<User | null>(null);
+  const [historyUser, setHistoryUser] = useState<UserType | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   const location = useLocation();
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
           if (infoRef.current && !infoRef.current.contains(event.target as Node)) {
               setIsInfoOpen(false);
+          }
+          if (mobileProfileRef.current && !mobileProfileRef.current.contains(event.target as Node)) {
+              setIsMobileProfileOpen(false);
           }
       };
       document.addEventListener("mousedown", handleClickOutside);
@@ -105,12 +112,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
       setFaqs(getFAQs());
   };
 
-  const handleOpenUserModal = (user: User | null = null) => {
+  const handleOpenUserModal = (user: UserType | null = null) => {
       setEditingUser(user);
       setIsUserModalOpen(true);
   };
   
-  const handleOpenHistoryModal = (user: User) => {
+  const handleOpenHistoryModal = (user: UserType) => {
       setHistoryUser(user);
       setIsHistoryModalOpen(true);
   };
@@ -176,8 +183,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
                   <LayoutGrid size={20} className="text-[#B8860B]" /> Magneto
               </span>
           </div>
-          <div className="w-8 h-8 bg-[#1d1d1f] rounded-full flex items-center justify-center text-[#B8860B] text-xs font-bold">
-              AD
+          
+          {/* Mobile Admin Profile Dropdown */}
+          <div className="relative" ref={mobileProfileRef}>
+              <button 
+                  onClick={() => setIsMobileProfileOpen(!isMobileProfileOpen)} 
+                  className="w-8 h-8 bg-[#1d1d1f] rounded-full flex items-center justify-center text-[#B8860B] text-xs font-bold shadow-sm"
+              >
+                  AD
+              </button>
+              {isMobileProfileOpen && (
+                  <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 p-2 z-[60] animate-fade-in origin-top-right">
+                      <div className="px-4 py-3 border-b border-gray-50 mb-1">
+                          <p className="font-bold text-[#1d1d1f] text-[10px] uppercase tracking-widest truncate">Administrador</p>
+                          <p className="text-[9px] text-gray-400 truncate">{currentAdminUser.email}</p>
+                      </div>
+                      <button onClick={() => { setIsMobileProfileOpen(false); handleOpenUserModal(currentAdminUser); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-[#1d1d1f] text-xs font-bold transition-colors text-left">
+                          <User size={14} /> Meu Perfil
+                      </button>
+                      <Link to="/my-orders" className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-[#1d1d1f] text-xs font-bold transition-colors text-left">
+                          <Package size={14} /> Meus Pedidos
+                      </Link>
+                      <button onClick={() => { setIsMobileProfileOpen(false); onLogout(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 text-xs font-bold transition-colors text-left">
+                          <LogOut size={14} /> Sair
+                      </button>
+                  </div>
+              )}
           </div>
       </div>
 
