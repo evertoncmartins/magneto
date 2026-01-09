@@ -334,7 +334,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
 
     // --- LIGHTBOX HANDLERS ---
     const openLightbox = (items: MagnetItem[], initialIndex: number) => {
-        const images = items.map(item => item.croppedUrl || item.originalUrl);
+        // PRIORITIZE ORIGINAL OR HIGH RES URL
+        const images = items.map(item => item.originalUrl || item.highResUrl || item.croppedUrl);
         setLightboxImages(images);
         setLightboxIndex(initialIndex);
         setIsLightboxOpen(true);
@@ -660,10 +661,11 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                                         )}
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                                                                <div className="flex gap-3 overflow-x-auto pb-2 md:flex-wrap md:overflow-visible md:pb-0 scrollbar-hide">
                                                                     {kitItems.map((item, kitIdx) => (
                                                                         <div key={item.id} className="w-20 h-20 rounded-lg border border-gray-200 p-1 bg-white shadow-sm shrink-0 cursor-zoom-in hover:border-[#B8860B] transition-colors relative group" onClick={() => openLightbox(kitItems, kitIdx)}>
-                                                                            <img src={item.croppedUrl || item.originalUrl} className="w-full h-full object-cover rounded" alt={`Item ${kitIdx}`} />
+                                                                            {/* Prioritize High Quality in Thumbnail */}
+                                                                            <img src={item.originalUrl || item.highResUrl || item.croppedUrl} className="w-full h-full object-cover rounded" alt={`Item ${kitIdx}`} />
                                                                             <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded"><ZoomIn size={16} className="text-white drop-shadow-md"/></div>
                                                                         </div>
                                                                     ))}

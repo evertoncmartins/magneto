@@ -51,13 +51,13 @@ const FILTERS = [
 const compressImageInput = async (file: File): Promise<{ url: string; blob: Blob }> => {
     let sourceFile = file;
 
-    // Conversão de HEIC/HEIF para JPEG
+    // Conversão de HEIC/HEIF para JPEG com alta qualidade
     if (file.name.toLowerCase().match(/\.(heic|heif)$/) || file.type === 'image/heic' || file.type === 'image/heif') {
         try {
             const convertedBlob = await heic2any({
                 blob: file,
                 toType: 'image/jpeg',
-                quality: 0.9
+                quality: 0.95 // Aumentado para preservar detalhes na conversão inicial
             });
             const finalBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
             sourceFile = new File([finalBlob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
@@ -76,8 +76,10 @@ const compressImageInput = async (file: File): Promise<{ url: string; blob: Blob
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // CÁLCULO DE RESOLUÇÃO OTIMIZADA:
-            const MAX_DIM = 1024; 
+            // CÁLCULO DE RESOLUÇÃO OTIMIZADA PARA IMPRESSÃO:
+            // Aumentado de 1024 para 2400 para permitir crop/zoom sem pixelização.
+            // 2400px é mais que suficiente para 50mm em 300dpi, permitindo margem de manobra.
+            const MAX_DIM = 2400; 
             let width = img.width;
             let height = img.height;
 
@@ -109,7 +111,7 @@ const compressImageInput = async (file: File): Promise<{ url: string; blob: Blob
                 } else {
                     reject(new Error("Falha na geração do blob da imagem"));
                 }
-            }, 'image/jpeg', 0.80);
+            }, 'image/jpeg', 0.92); // Qualidade aumentada para 92% (padrão de alta qualidade)
         };
         
         img.onerror = (err) => {
@@ -307,7 +309,7 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
             
             // Inicializa progresso real
             setProgress({ current: 0, total: filesToProcess.length });
-            setProcessingMessage('Otimizando fotos...');
+            setProcessingMessage('Otimizando fotos (Alta Qualidade)...');
 
             try {
                 const newItems: MagnetItem[] = [];
@@ -441,6 +443,11 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
                 let dw, dh;
                 if (aspect > 1) { dh = outputSize; dw = outputSize * aspect; } else { dw = outputSize; dh = outputSize / aspect; }
                 const offsetScale = outputSize / 384; 
+                // Assumindo que 384 era a base do editor visual, precisamos ajustar se o editor mudou de tamanho
+                // Melhor usar o tamanho do canvas de saída como base de proporção.
+                // Mas o cropData.x e y são baseados nos pixels de movimento do mouse/touch.
+                // A lógica abaixo tenta escalar o movimento relativo.
+                
                 const tx = (img.cropData?.x || 0) * offsetScale;
                 const ty = (img.cropData?.y || 0) * offsetScale;
                 context.drawImage(imageElement, -dw/2 + tx, -dh/2 + ty, dw, dh);
@@ -471,7 +478,7 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
         }
         
         setIsProcessing(true);
-        setProcessingMessage(isAdminMode ? 'Salvando alterações do pedido...' : 'Gerando kit final...');
+        setProcessingMessage(isAdminMode ? 'Salvando alterações em Alta Definição...' : 'Gerando kit final em Alta Definição...');
         setProgress({ current: 0, total: images.length });
 
         try {
@@ -484,7 +491,7 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
             for (let i = 0; i < images.length; i++) {
                 const img = images[i];
                 
-                setProcessingMessage(`Processando ${i + 1} de ${images.length}...`);
+                setProcessingMessage(`Renderizando ${i + 1} de ${images.length}...`);
                 setProgress({ current: i + 1, total: images.length });
                 await new Promise(resolve => setTimeout(resolve, 20));
 
@@ -496,8 +503,11 @@ const Studio: React.FC<StudioProps> = ({ addToCart, initialImages = [] }) => {
                 }
 
                 try {
-                    const displayUrl = await processFinalImage(img, 500, 0.75, false) as string; 
-                    const printBlob = await processFinalImage(img, 1200, 0.90, true) as Blob; 
+                    // Display: 600px @ 85% (Melhor visualização em telas Retina)
+                    const displayUrl = await processFinalImage(img, 600, 0.85, false) as string; 
+                    
+                    // Print: 1500px @ 95% (Excelente para 50mm @ ~700dpi, quase lossless)
+                    const printBlob = await processFinalImage(img, 1500, 0.95, true) as Blob; 
 
                     try {
                         if (printBlob) {

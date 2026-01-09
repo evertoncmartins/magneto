@@ -1,8 +1,8 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { User, Order, Review, MagnetItem } from '../types';
 import { getUserOrders, getReviewByOrderId, submitReview, updateReview, getPricingRules } from '../services/mockService';
-import { Package, Clock, ChevronDown, Calendar, MapPin, CheckCircle, ShoppingBag, Truck, Loader2, X, Star, ImageIcon, Edit3, CornerUpLeft, Box, XCircle, AlertCircle, Layers, ZoomIn, Wallet, Receipt, MessageCircle, Camera, Shield } from 'lucide-react';
+import { Package, Clock, ChevronDown, Calendar, MapPin, CheckCircle, ShoppingBag, Truck, Loader2, X, Star, ImageIcon, Edit3, CornerUpLeft, Box, XCircle, AlertCircle, Layers, ZoomIn, Wallet, Receipt, MessageCircle, Camera, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 // @ts-ignore
 import heic2any from 'heic2any';
@@ -22,8 +22,10 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
-  // Lightbox State
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  // Lightbox State (Advanced)
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   // Review Form States
   const [editingReviewOrderId, setEditingReviewOrderId] = useState<string | null>(null);
@@ -200,6 +202,43 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
       return 'Kit Gallery';
   };
 
+  // --- LIGHTBOX FUNCTIONS ---
+  const openLightbox = (items: MagnetItem[], initialIndex: number) => {
+      // Prioritize High Quality Images
+      const images = items.map(item => item.originalUrl || item.highResUrl || item.croppedUrl);
+      setLightboxImages(images);
+      setLightboxIndex(initialIndex);
+      setIsLightboxOpen(true);
+      document.body.style.overflow = 'hidden';
+  };
+
+  const closeLightbox = useCallback(() => {
+      setIsLightboxOpen(false);
+      setLightboxImages([]);
+      document.body.style.overflow = 'auto';
+  }, []);
+
+  const nextPhoto = useCallback((e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      setLightboxIndex(prev => (prev + 1) % lightboxImages.length);
+  }, [lightboxImages]);
+
+  const prevPhoto = useCallback((e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      setLightboxIndex(prev => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+  }, [lightboxImages]);
+
+  useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+          if (!isLightboxOpen) return;
+          if (e.key === 'Escape') closeLightbox();
+          if (e.key === 'ArrowRight') nextPhoto();
+          if (e.key === 'ArrowLeft') prevPhoto();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, nextPhoto, prevPhoto, closeLightbox]);
+
   return (
     <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-4 md:px-6">
       <div className="max-w-[1000px] mx-auto">
@@ -327,10 +366,11 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                                     {items.map((item, idx) => (
                                                         <div 
                                                             key={idx} 
-                                                            onClick={() => setLightboxImage(item.originalUrl || item.croppedUrl)}
+                                                            onClick={() => openLightbox(items, idx)}
                                                             className="aspect-square rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shadow-sm cursor-zoom-in group relative"
                                                         >
-                                                            <img src={item.croppedUrl} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                            {/* Prioritize High Quality in Thumbnail too */}
+                                                            <img src={item.originalUrl || item.highResUrl || item.croppedUrl} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                                                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                                                                 <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" size={16} />
                                                             </div>
@@ -478,7 +518,11 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                                         {review.photos && review.photos.length > 0 && (
                                                             <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200/50">
                                                                 {review.photos.map((p, idx) => (
-                                                                    <div key={idx} className="w-10 h-10 rounded-md border border-gray-200 overflow-hidden cursor-zoom-in" onClick={() => setLightboxImage(p)}>
+                                                                    <div key={idx} className="w-10 h-10 rounded-md border border-gray-200 overflow-hidden cursor-zoom-in" onClick={() => {
+                                                                        setLightboxImages(review.photos);
+                                                                        setLightboxIndex(idx);
+                                                                        setIsLightboxOpen(true);
+                                                                    }}>
                                                                         <img src={p} className="w-full h-full object-cover" />
                                                                     </div>
                                                                 ))}
@@ -578,22 +622,15 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       {/* LIGHTBOX OVERLAY */}
-      {lightboxImage && (
-          <div 
-            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center animate-fade-in p-4"
-            onClick={() => setLightboxImage(null)}
-          >
-              <button 
-                className="absolute top-6 right-6 p-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all"
-                onClick={() => setLightboxImage(null)}
-              >
-                  <X size={24} />
-              </button>
-              <img 
-                src={lightboxImage} 
-                className="max-w-full max-h-[90vh] object-contain rounded-sm shadow-2xl" 
-                onClick={(e) => e.stopPropagation()} // Prevent close on image click
-              />
+      {isLightboxOpen && (
+          <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center animate-fade-in p-4" onClick={closeLightbox}>
+              <button onClick={closeLightbox} className="absolute top-4 right-4 md:top-8 md:right-8 p-3 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all z-50"><X size={24} /></button>
+              <div className="relative w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                  {lightboxImages.length > 1 && (<button onClick={prevPhoto} className="absolute left-0 md:left-4 p-4 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all z-50"><ChevronLeft size={36} strokeWidth={1.5} /></button>)}
+                  <img src={lightboxImages[lightboxIndex]} className="max-w-full max-h-[85vh] object-contain rounded shadow-2xl select-none" alt="Visualização" />
+                  {lightboxImages.length > 1 && (<button onClick={nextPhoto} className="absolute right-0 md:right-4 p-4 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all z-50"><ChevronRight size={36} strokeWidth={1.5} /></button>)}
+              </div>
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-black/50 rounded-full border border-white/10 pointer-events-none"><span className="text-[10px] font-bold text-white/80 tracking-[0.2em]">{lightboxIndex + 1} / {lightboxImages.length}</span></div>
           </div>
       )}
     </div>
