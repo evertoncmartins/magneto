@@ -5,7 +5,7 @@ import {
     Loader2, Download, MapPin, Receipt, Search, X, ChevronLeft, ChevronRight, ZoomIn, Calendar, Layers,
     Camera, Shield, Trash2, Edit3, UserCheck, RefreshCw, Wand2, ToggleRight, ToggleLeft, List
 } from 'lucide-react';
-import { Order, MagnetItem, User } from '../../types';
+import { Order, MagnetItem, User, Address } from '../../types';
 import { updateOrderStatus, softDeleteOrder, restoreOrder, updateOrderDetails, getUsers } from '../../services/mockService';
 import { useNavigate } from 'react-router-dom';
 
@@ -81,6 +81,12 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
     const [userSearchTerm, setUserSearchTerm] = useState('');
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const userSearchInputRef = useRef<HTMLInputElement>(null);
+
+    // Address Edit State
+    const [editAddressForm, setEditAddressForm] = useState<Address>({
+        street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: ''
+    });
+    const [isFetchingCep, setIsFetchingCep] = useState(false);
     
     // Date Filters
     const [dateStart, setDateStart] = useState('');
@@ -95,7 +101,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
         setAllUsers(getUsers());
     }, []);
 
-    // Sync Search Term when editing order changes
+    // Sync Search Term and Address when editing order changes
     useEffect(() => {
         if (editingOrder && isEditModalOpen) {
             const currentUser = allUsers.find(u => u.id === editingOrder.userId);
@@ -103,6 +109,13 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 setUserSearchTerm(currentUser.name);
             } else {
                 setUserSearchTerm('');
+            }
+
+            // Populate Address Form
+            if (editingOrder.shippingAddress) {
+                setEditAddressForm(editingOrder.shippingAddress);
+            } else {
+                setEditAddressForm({ street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: '' });
             }
         }
     }, [editingOrder, isEditModalOpen, allUsers]);
@@ -241,6 +254,15 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
             setEditingOrder({ ...editingOrder, userId: user.id });
             setUserSearchTerm(user.name);
             setShowUserDropdown(false);
+            
+            // Optionally update address to user's default if needed, 
+            // but usually we keep order address separate. 
+            // Uncomment below if you want to overwrite order address with user default
+            /*
+            if (user.address) {
+                setEditAddressForm(user.address);
+            }
+            */
         }
     };
 
@@ -250,13 +272,37 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
         setShowUserDropdown(true);
     };
 
+    const handleCepLookup = async (cep: string) => {
+        const cleanCep = cep.replace(/\D/g, '');
+        setEditAddressForm(prev => ({ ...prev, zipCode: cleanCep }));
+  
+        if (cleanCep.length === 8) {
+            setIsFetchingCep(true);
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+                const data = await response.json();
+                if (!data.erro) {
+                    setEditAddressForm(prev => ({
+                        ...prev,
+                        street: data.logradouro || prev.street,
+                        neighborhood: data.bairro || prev.neighborhood,
+                        city: data.localidade || prev.city,
+                        state: data.uf || prev.state
+                    }));
+                }
+            } catch (e) { console.error("Erro CEP", e); }
+            finally { setIsFetchingCep(false); }
+        }
+    };
+
     const saveEditOrder = () => {
         if (editingOrder) {
             // Se o usuário mudou, atualiza nome do cliente também
             const selectedUser = allUsers.find(u => u.id === editingOrder.userId);
             const updates = {
                 ...editingOrder,
-                customerName: selectedUser ? selectedUser.name : editingOrder.customerName
+                customerName: selectedUser ? selectedUser.name : editingOrder.customerName,
+                shippingAddress: editAddressForm // Save the updated address
             };
             updateOrderDetails(editingOrder.id, updates);
             refreshData();
@@ -337,6 +383,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
 
         setEditingOrder({ ...editingOrder, items: updatedItems });
     };
+
+    const inputClasses = "w-full h-10 px-3 bg-[#F5F5F7] rounded-lg text-sm text-[#1d1d1f] outline-none focus:bg-white focus:ring-1 focus:ring-[#B8860B] border border-transparent transition-all placeholder:text-gray-400";
 
     return (
         <>
@@ -782,13 +830,42 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                 </div>
                             </div>
 
+                            {/* 1.5 Address Editing */}
+                            <div className="space-y-3 pt-4 border-t border-gray-50">
+                                <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest flex items-center gap-2"><MapPin size={14}/> Endereço de Entrega</label>
+                                <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <div className="relative">
+                                        <input 
+                                            value={editAddressForm.zipCode} 
+                                            onChange={e => handleCepLookup(e.target.value)} 
+                                            placeholder="CEP" 
+                                            className={inputClasses}
+                                            maxLength={9}
+                                        />
+                                        {isFetchingCep && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#B8860B]"/>}
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <input value={editAddressForm.street} onChange={e => setEditAddressForm(prev => ({...prev, street: e.target.value}))} placeholder="Rua" className={`${inputClasses} col-span-2`} />
+                                        <input value={editAddressForm.number} onChange={e => setEditAddressForm(prev => ({...prev, number: e.target.value}))} placeholder="Nº" className={inputClasses} />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <input value={editAddressForm.complement} onChange={e => setEditAddressForm(prev => ({...prev, complement: e.target.value}))} placeholder="Comp." className={inputClasses} />
+                                        <input value={editAddressForm.neighborhood} onChange={e => setEditAddressForm(prev => ({...prev, neighborhood: e.target.value}))} placeholder="Bairro" className={inputClasses} />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <input value={editAddressForm.city} onChange={e => setEditAddressForm(prev => ({...prev, city: e.target.value}))} placeholder="Cidade" className={`${inputClasses} col-span-2`} />
+                                        <input value={editAddressForm.state} onChange={e => setEditAddressForm(prev => ({...prev, state: e.target.value}))} placeholder="UF" maxLength={2} className={`${inputClasses} text-center uppercase`} />
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* 2. Consent Management Per Kit */}
-                            <div className="space-y-4">
+                            <div className="space-y-4 pt-4 border-t border-gray-100">
                                 <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest flex items-center gap-2"><Camera size={14}/> Consentimento por Kit</label>
                                 {Object.entries(groupItemsByKit(editingOrder.items || [])).map(([kitId, items]) => {
                                     const kitConsent = items[0]?.socialConsent !== undefined ? items[0].socialConsent : !!editingOrder.socialSharingConsent;
                                     return (
-                                        <div key={kitId} onClick={() => toggleKitConsent(kitId, kitConsent)} className={`p-4 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${kitConsent ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'}`}>
+                                        <div key={kitId} onClick={() => toggleKitConsent(kitId, kitConsent)} className={`p-4 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${kitConsent ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
                                             <div className="flex items-center gap-3">
                                                 {kitConsent ? <CheckCircle size={20} className="text-emerald-500"/> : <Shield size={20} className="text-gray-400"/>}
                                                 <div>
