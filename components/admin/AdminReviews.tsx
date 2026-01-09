@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Star, RotateCcw, Edit3, AlertTriangle, X, ChevronLeft, ChevronRight, Search, Calendar } from 'lucide-react';
+import { Star, RotateCcw, Edit3, AlertTriangle, X, ChevronLeft, ChevronRight, Search, Calendar, ChevronDown } from 'lucide-react';
 import { Review } from '../../types';
 import { updateReview, moderateReview } from '../../services/mockService';
 
@@ -19,6 +19,10 @@ const AdminReviews: React.FC<AdminReviewsProps> = ({ reviews, refreshData }) => 
     const [dateStart, setDateStart] = useState('');
     const [dateEnd, setDateEnd] = useState('');
 
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+
     // Rejection Modal State
     const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
     const [rejectingReviewId, setRejectingReviewId] = useState<string | null>(null);
@@ -34,6 +38,11 @@ const AdminReviews: React.FC<AdminReviewsProps> = ({ reviews, refreshData }) => 
         approved: reviews.filter(r => r.status === 'approved').length,
         rejected: reviews.filter(r => r.status === 'rejected').length
     }), [reviews]);
+
+    // Reset pagination when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, reviewStatusFilter, dateStart, dateEnd, itemsPerPage]);
 
     // Helper to parse "DD/MM/YYYY" to Date object
     const parseDate = (dateStr: string) => {
@@ -73,6 +82,14 @@ const AdminReviews: React.FC<AdminReviewsProps> = ({ reviews, refreshData }) => 
             return true;
         });
     }, [reviews, reviewStatusFilter, searchTerm, dateStart, dateEnd]);
+
+    // --- PAGINATION LOGIC ---
+    const indexOfLastReview = currentPage * itemsPerPage;
+    const indexOfFirstReview = indexOfLastReview - itemsPerPage;
+    const currentReviews = filteredReviews.slice(indexOfFirstReview, indexOfLastReview);
+    const totalPages = Math.ceil(filteredReviews.length / itemsPerPage);
+
+    const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
     const handleStartEditReview = (review: Review) => {
         setEditingReviewId(review.id);
@@ -235,7 +252,7 @@ const AdminReviews: React.FC<AdminReviewsProps> = ({ reviews, refreshData }) => 
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {filteredReviews.map(review => (
+                    {currentReviews.map(review => (
                         <div key={review.id} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col hover:shadow-md transition-shadow">
                             {editingReviewId === review.id ? (
                                 <div className="space-y-4 mb-4">
@@ -317,6 +334,70 @@ const AdminReviews: React.FC<AdminReviewsProps> = ({ reviews, refreshData }) => 
                         </div>
                     )}
                 </div>
+
+                {/* PAGINATION FOOTER */}
+                {filteredReviews.length > 0 && (
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Exibir</span>
+                            <div className="relative">
+                                <select 
+                                    value={itemsPerPage}
+                                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                                    className="appearance-none bg-[#F5F5F7] border border-transparent hover:border-gray-200 rounded-lg pl-3 pr-8 py-1.5 text-xs font-bold text-[#1d1d1f] focus:outline-none cursor-pointer"
+                                >
+                                    <option value={10}>10</option>
+                                    <option value={30}>30</option>
+                                    <option value={50}>50</option>
+                                </select>
+                                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">por página</span>
+                            <span className="text-gray-300 mx-2">|</span>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                Total: <span className="text-[#1d1d1f]">{filteredReviews.length}</span>
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => paginate(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="p-2 rounded-lg border border-gray-100 text-gray-500 hover:bg-gray-50 hover:text-[#1d1d1f] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            
+                            <div className="flex gap-1">
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    let pageNum = i + 1;
+                                    if (totalPages > 5 && currentPage > 3) {
+                                        pageNum = currentPage - 2 + i;
+                                        if (pageNum > totalPages) pageNum = totalPages - (4 - i);
+                                    }
+                                    
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => paginate(pageNum)}
+                                            className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === pageNum ? 'bg-[#1d1d1f] text-white shadow-md' : 'bg-white border border-gray-100 text-gray-500 hover:bg-gray-50'}`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <button 
+                                onClick={() => paginate(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="p-2 rounded-lg border border-gray-100 text-gray-500 hover:bg-gray-50 hover:text-[#1d1d1f] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* REJECTION MODAL */}
@@ -345,7 +426,7 @@ const AdminReviews: React.FC<AdminReviewsProps> = ({ reviews, refreshData }) => 
                 </div>
             )}
 
-            {/* LIGHTBOX OVERLAY - SIMPLIFIED FOR MOBILE RELIABILITY */}
+            {/* LIGHTBOX OVERLAY */}
             {lightboxData && (
                 <div 
                     className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center animate-fade-in p-4"

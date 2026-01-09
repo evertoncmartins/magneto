@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo } from 'react';
-import { ShoppingBag, Edit3, Trash2, Plus, Search, MapPin, Phone, History, ShieldCheck, User as UserIcon, X } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { ShoppingBag, Edit3, Trash2, Plus, Search, MapPin, Phone, History, ShieldCheck, User as UserIcon, X, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { User } from '../../types';
 import { deleteUser } from '../../services/mockService';
 
@@ -17,6 +17,10 @@ interface AdminUsersProps {
 const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalSearch, refreshData, onStartOrder, handleOpenUserModal, handleViewHistory }) => {
     
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+    
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     const handleDelete = (id: string) => {
         if(window.confirm("Deseja realmente excluir este usuário?")) {
@@ -32,6 +36,11 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
         inactive: users.filter(u => !u.isActive).length
     }), [users]);
 
+    // Reset pagination when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [globalSearch, statusFilter, itemsPerPage]);
+
     // Filtra usuários por texto e status
     const filteredUsers = users.filter(u => {
         const searchLower = globalSearch.toLowerCase();
@@ -43,6 +52,14 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
 
         return matchesSearch && matchesStatus;
     });
+
+    // --- PAGINATION LOGIC ---
+    const indexOfLastUser = currentPage * itemsPerPage;
+    const indexOfFirstUser = indexOfLastUser - itemsPerPage;
+    const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+    const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
     return (
         <div className="animate-fade-in space-y-6">
@@ -119,7 +136,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
 
             {/* Grid de Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredUsers.map(user => (
+                {currentUsers.map(user => (
                     <div 
                         key={user.id} 
                         className={`bg-white rounded-2xl p-6 border transition-all duration-300 relative group ${user.isAdmin ? 'border-[#B8860B]/30 shadow-md' : 'border-gray-100 shadow-sm hover:shadow-md'}`}
@@ -190,6 +207,70 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                     </div>
                 ))}
             </div>
+
+            {/* PAGINATION FOOTER */}
+            {filteredUsers.length > 0 && (
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Exibir</span>
+                        <div className="relative">
+                            <select 
+                                value={itemsPerPage}
+                                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                                className="appearance-none bg-[#F5F5F7] border border-transparent hover:border-gray-200 rounded-lg pl-3 pr-8 py-1.5 text-xs font-bold text-[#1d1d1f] focus:outline-none cursor-pointer"
+                            >
+                                <option value={10}>10</option>
+                                <option value={30}>30</option>
+                                <option value={50}>50</option>
+                            </select>
+                            <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">por página</span>
+                        <span className="text-gray-300 mx-2">|</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            Total: <span className="text-[#1d1d1f]">{filteredUsers.length}</span>
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => paginate(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="p-2 rounded-lg border border-gray-100 text-gray-500 hover:bg-gray-50 hover:text-[#1d1d1f] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        
+                        <div className="flex gap-1">
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                let pageNum = i + 1;
+                                if (totalPages > 5 && currentPage > 3) {
+                                    pageNum = currentPage - 2 + i;
+                                    if (pageNum > totalPages) pageNum = totalPages - (4 - i);
+                                }
+                                
+                                return (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => paginate(pageNum)}
+                                        className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === pageNum ? 'bg-[#1d1d1f] text-white shadow-md' : 'bg-white border border-gray-100 text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <button 
+                            onClick={() => paginate(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="p-2 rounded-lg border border-gray-100 text-gray-500 hover:bg-gray-50 hover:text-[#1d1d1f] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {filteredUsers.length === 0 && (
                 <div className="text-center py-20 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
