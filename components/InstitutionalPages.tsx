@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { LayoutGrid, Layers, Leaf, Heart, ArrowRight, Truck } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -5,7 +6,7 @@ import { Link } from 'react-router-dom';
 const InstitutionalHeader: React.FC<{ title: string; subtitle: string; bgImage: string }> = ({ title, subtitle, bgImage }) => (
     <div className="relative h-[60vh] flex items-center justify-center overflow-hidden">
         <img src={bgImage} className="absolute inset-0 w-full h-full object-cover" alt={title} />
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"></div>
         <div className="relative z-10 text-center px-6 animate-fade-in">
             <span className="text-[#B8860B] font-bold text-xs uppercase tracking-[0.4em] block mb-4">{subtitle}</span>
             <h1 className="text-5xl md:text-7xl font-serif text-white font-medium mb-6">{title}</h1>
@@ -45,7 +46,7 @@ export const OurHistory = () => {
                 <p>A Magneto nasceu de uma necessidade simples, porém profunda: a vontade de tirar as memórias das telas frias dos celulares e trazê-las de volta para o cotidiano tátil.</p>
                 <p>Em um mundo onde tiramos milhares de fotos que raramente revemos, acreditamos que imprimir é o ato final de carinho com um momento vivido. Começamos em um pequeno estúdio, testando papéis, ímãs e acabamentos até chegar na fórmula perfeita que une durabilidade e estética.</p>
             </Section>
-            <Section title="Nossa Missão" reverse image="https://images.unsplash.com/photo-1531346878377-a513bc95f30f?q=80&w=1000&auto=format&fit=crop">
+            <Section title="Nossa Missão" reverse image="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1000&auto=format&fit=crop">
                 <p>Não vendemos apenas ímãs. Vendemos portais para o passado. Nossa missão é transformar a porta da sua geladeira ou o seu painel magnético em uma galeria de arte pessoal, com curadoria feita por você.</p>
                 <p>Buscamos a excelência em cada corte, em cada ajuste de cor, para que aquele sorriso, aquela viagem ou aquele abraço durem por gerações.</p>
             </Section>
@@ -66,7 +67,7 @@ export const ProductionProcess = () => {
             <InstitutionalHeader 
                 title="Processo de Produção" 
                 subtitle="Artesanal & Tecnológico"
-                bgImage="https://images.unsplash.com/photo-1562886877-6e94916a2971?q=80&w=1600&auto=format&fit=crop"
+                bgImage="https://images.unsplash.com/photo-1531973576160-7125cd663d86?q=80&w=1600&auto=format&fit=crop"
             />
             
             <div className="max-w-[1200px] mx-auto px-6 py-24 grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -85,7 +86,7 @@ export const ProductionProcess = () => {
                 ))}
             </div>
 
-            <Section title="Qualidade que se Sente" image="https://images.unsplash.com/photo-1626785774573-4b79931256ce?q=80&w=1000&auto=format&fit=crop">
+            <Section title="Qualidade que se Sente" image="https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=1000&auto=format&fit=crop">
                 <p>Nossos ímãs possuem 0.8mm de espessura, conferindo robustez e aderência perfeita. Diferente de ímãs promocionais finos, o produto Magneto tem "corpo" e presença.</p>
                 <p>O verso é totalmente imantado (manta magnética de alta energia), garantindo que suas fotos não escorreguem e fixem papéis com segurança.</p>
             </Section>
@@ -100,7 +101,7 @@ export const Sustainability = () => {
             <InstitutionalHeader 
                 title="Sustentabilidade" 
                 subtitle="Compromisso Eco-friendly"
-                bgImage="https://images.unsplash.com/photo-1542601906990-b4d3fb7d5b7a?q=80&w=1600&auto=format&fit=crop"
+                bgImage="https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=1600&auto=format&fit=crop"
             />
             <div className="max-w-4xl mx-auto px-6 py-24 text-center">
                 <h2 className="text-3xl md:text-4xl font-serif text-[#1d1d1f] mb-8">Pegada Leve, Memórias Duradouras</h2>
