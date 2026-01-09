@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
     Quote, Plus, Trash2, Edit3, ToggleLeft, ToggleRight, 
-    Settings, Import, Save, X, Star, Upload, Search, CheckCircle, RotateCw, GripVertical, Calendar, Check
+    Settings, Import, Save, X, Star, Upload, Search, CheckCircle, RotateCw, GripVertical, Calendar, Check,
+    ChevronLeft, ChevronRight, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { LoginTestimonial, Review, LoginTestimonialSettings } from '../../types';
 import { 
@@ -12,7 +13,7 @@ import {
     deleteLoginTestimonial, 
     getReviews, 
     getLoginTestimonialConfig, 
-    updateLoginTestimonialSettings,
+    updateLoginTestimonialSettings, 
     reorderLoginTestimonials
 } from '../../services/mockService';
 
@@ -143,6 +144,19 @@ const AdminLoginTestimonials: React.FC = () => {
         setDraggedItemIndex(null);
     };
 
+    // Manual Move Handlers (For Touch Devices)
+    const moveTestimonial = (index: number, direction: 'up' | 'down') => {
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= testimonials.length) return;
+
+        const updatedTestimonials = [...testimonials];
+        const [movedItem] = updatedTestimonials.splice(index, 1);
+        updatedTestimonials.splice(newIndex, 0, movedItem);
+
+        setTestimonials(updatedTestimonials);
+        reorderLoginTestimonials(updatedTestimonials);
+    };
+
     // Filter Site Reviews for Import Tab
     const filteredReviews = useMemo(() => {
         // IDs já importados para excluir da lista
@@ -183,26 +197,26 @@ const AdminLoginTestimonials: React.FC = () => {
 
     return (
         <div className="space-y-6 animate-fade-in">
-            {/* Tabs */}
+            {/* Tabs - Mobile Responsive Wrapper */}
             <div className="flex justify-center">
-                <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 flex gap-1">
+                <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 flex flex-wrap justify-center gap-1 w-full md:w-auto">
                     <button 
                         onClick={() => setActiveTab('manage')}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'manage' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'manage' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
                     >
                         <Quote size={14} /> Gerenciar
                     </button>
                     <button 
                         onClick={() => setActiveTab('import')}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'import' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'import' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
                     >
-                        <Import size={14} /> Importar do Site
+                        <Import size={14} /> Importar
                     </button>
                     <button 
                         onClick={() => setActiveTab('settings')}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'settings' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
                     >
-                        <Settings size={14} /> Configurações
+                        <Settings size={14} /> Ajustes
                     </button>
                 </div>
             </div>
@@ -210,16 +224,17 @@ const AdminLoginTestimonials: React.FC = () => {
             {/* TAB: MANAGE */}
             {activeTab === 'manage' && (
                 <div className="space-y-6">
-                    <div className="flex justify-between items-center">
+                    {/* Header - Mobile Column Layout */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h3 className="text-xl font-serif font-bold text-[#1d1d1f]">Depoimentos Ativos</h3>
-                            <p className="text-xs text-gray-400 mt-1">
+                            <p className="text-xs text-gray-400 mt-1 leading-relaxed">
                                 {settings.displayMode === 'sequential' 
-                                    ? 'Modo Sequencial: Arraste os cards para definir a ordem de exibição.' 
-                                    : 'Modo Aleatório: A ordem abaixo é apenas para organização.'}
+                                    ? 'Modo Sequencial: Arraste para definir a ordem.' 
+                                    : 'Modo Aleatório: A ordem é apenas organizacional.'}
                             </p>
                         </div>
-                        <button onClick={() => handleOpenModal()} className="bg-[#1d1d1f] text-white px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center gap-2 active:scale-95">
+                        <button onClick={() => handleOpenModal()} className="w-full md:w-auto bg-[#1d1d1f] text-white px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 shrink-0">
                             <Plus size={16} /> Adicionar Manualmente
                         </button>
                     </div>
@@ -234,9 +249,29 @@ const AdminLoginTestimonials: React.FC = () => {
                                 onDrop={() => handleDrop(index)}
                                 className={`bg-white rounded-xl border transition-all relative group overflow-hidden cursor-move hover:shadow-md ${item.isActive ? 'border-gray-200 shadow-sm' : 'border-gray-100 opacity-60 grayscale'}`}
                             >
-                                {/* Drag Handle Hint */}
-                                <div className="absolute top-2 right-2 z-20 text-white/50 bg-black/20 p-1 rounded hover:bg-black/40 transition-colors opacity-0 group-hover:opacity-100">
+                                {/* Drag Handle Hint (Desktop) */}
+                                <div className="hidden md:block absolute top-2 right-2 z-20 text-white/50 bg-black/20 p-1 rounded hover:bg-black/40 transition-colors opacity-0 group-hover:opacity-100">
                                     <GripVertical size={16} />
+                                </div>
+
+                                {/* Mobile Reorder Buttons */}
+                                <div className="md:hidden absolute top-2 right-2 z-20 flex flex-col gap-1">
+                                    {index > 0 && (
+                                        <button 
+                                            onClick={() => moveTestimonial(index, 'up')}
+                                            className="bg-black/30 text-white p-1.5 rounded backdrop-blur-sm active:bg-black/50"
+                                        >
+                                            <ArrowUp size={14} />
+                                        </button>
+                                    )}
+                                    {index < testimonials.length - 1 && (
+                                        <button 
+                                            onClick={() => moveTestimonial(index, 'down')}
+                                            className="bg-black/30 text-white p-1.5 rounded backdrop-blur-sm active:bg-black/50"
+                                        >
+                                            <ArrowDown size={14} />
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* Image Preview */}
@@ -256,9 +291,9 @@ const AdminLoginTestimonials: React.FC = () => {
                                     <div className="flex text-[#B8860B] mb-2 gap-0.5">
                                         {[...Array(5)].map((_, i) => <Star key={i} size={12} fill={i < item.rating ? "currentColor" : "none"} />)}
                                     </div>
-                                    <p className="text-sm text-gray-600 italic line-clamp-3 mb-4">"{item.quote}"</p>
+                                    <p className="text-sm text-gray-600 italic line-clamp-3 mb-4 min-h-[3.75rem]">"{item.quote}"</p>
                                     
-                                    <div className="flex justify-between items-center border-t border-gray-50 pt-4">
+                                    <div className="flex flex-wrap gap-y-2 justify-between items-center border-t border-gray-50 pt-4">
                                         <div className="flex gap-1.5">
                                             {item.source === 'manual' ? (
                                                 <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-gray-100 text-gray-500">
@@ -276,6 +311,12 @@ const AdminLoginTestimonials: React.FC = () => {
                                             )}
                                         </div>
                                         <div className="flex gap-2">
+                                            {/* Desktop Reorder Buttons (Horizontal) */}
+                                            <div className="hidden md:flex gap-1 mr-2 border-r border-gray-100 pr-2">
+                                                <button onClick={() => moveTestimonial(index, 'up')} disabled={index === 0} className="p-1.5 text-gray-300 hover:text-[#1d1d1f] disabled:opacity-30 transition-colors"><ChevronLeft size={16}/></button>
+                                                <button onClick={() => moveTestimonial(index, 'down')} disabled={index === testimonials.length - 1} className="p-1.5 text-gray-300 hover:text-[#1d1d1f] disabled:opacity-30 transition-colors"><ChevronRight size={16}/></button>
+                                            </div>
+
                                             <button onClick={() => handleToggleActive(item)} className="p-2 text-gray-400 hover:text-emerald-500 transition-colors" title={item.isActive ? "Desativar" : "Ativar"}>
                                                 {item.isActive ? <ToggleRight size={20} className="text-emerald-500"/> : <ToggleLeft size={20}/>}
                                             </button>
@@ -367,7 +408,7 @@ const AdminLoginTestimonials: React.FC = () => {
                                     </div>
                                     <button 
                                         onClick={() => handlePromoteReview(review)}
-                                        className="bg-[#F5F5F7] text-[#1d1d1f] hover:bg-[#1d1d1f] hover:text-white px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shrink-0 border border-gray-200 hover:border-transparent"
+                                        className="bg-[#F5F5F7] text-[#1d1d1f] hover:bg-[#1d1d1f] hover:text-white px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shrink-0 border border-gray-200 hover:border-transparent w-full md:w-auto justify-center"
                                     >
                                         <Upload size={14} /> Importar
                                     </button>
@@ -472,7 +513,7 @@ const AdminLoginTestimonials: React.FC = () => {
                                         onChange={e => setFormData({...formData, quote: e.target.value})}
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1 block">Autor</label>
                                         <input 
@@ -506,7 +547,7 @@ const AdminLoginTestimonials: React.FC = () => {
                                     <p className="text-[9px] text-gray-400 mt-1">Recomendado: Imagens escuras ou com filtro para contraste.</p>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1 block">Foto do Autor (URL)</label>
                                         <input 
@@ -517,15 +558,24 @@ const AdminLoginTestimonials: React.FC = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1 block">Avaliação (1-5)</label>
-                                        <input 
-                                            type="number"
-                                            min="1"
-                                            max="5"
-                                            className="w-full h-10 px-3 bg-[#F5F5F7] border border-transparent rounded-lg text-sm outline-none focus:bg-white focus:border-[#B8860B]"
-                                            value={formData.rating}
-                                            onChange={e => setFormData({...formData, rating: parseInt(e.target.value)})}
-                                        />
+                                        <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1 block">Avaliação</label>
+                                        <div className="flex gap-1 sm:gap-2">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <button
+                                                    key={star}
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, rating: star })}
+                                                    className="p-1 transition-transform hover:scale-110 focus:outline-none"
+                                                >
+                                                    <Star
+                                                        size={24}
+                                                        fill={star <= formData.rating ? "#B8860B" : "none"}
+                                                        className={star <= formData.rating ? "text-[#B8860B]" : "text-gray-300"}
+                                                        strokeWidth={star <= formData.rating ? 0 : 1.5}
+                                                    />
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
 

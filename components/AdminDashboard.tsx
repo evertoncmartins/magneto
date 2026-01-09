@@ -218,7 +218,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
                   {isSidebarCollapsed && <div className="h-4"></div>}
                   
                   <SidebarItem id="overview" icon={Home} label="Visão Geral" />
-                  <SidebarItem id="orders" icon={Package} label="Pedidos" count={orders.filter(o => o.status === 'pending').length || undefined} />
                   <SidebarItem id="finance" icon={TrendingUp} label="Financeiro" />
                   
                   {/* SEÇÃO GESTÃO DE NEGÓCIO */}
@@ -228,6 +227,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
                       <div className="my-4 border-t border-gray-100 mx-2"></div>
                   )}
                   
+                  <SidebarItem id="orders" icon={Package} label="Pedidos" count={orders.filter(o => o.status === 'pending').length || undefined} />
                   <SidebarItem id="users" icon={Users} label="Clientes" />
                   <SidebarItem id="coupons" icon={Ticket} label="Cupons" />
                   <SidebarItem id="pricing" icon={Tag} label="Preços" />
@@ -241,8 +241,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
                   )}
 
                   <SidebarItem id="faq" icon={HelpCircle} label="Perguntas Freq." />
-                  <SidebarItem id="cms" icon={PenTool} label="Conteúdo (CMS)" />
                   <SidebarItem id="login-testimonials" icon={Quote} label="Depoimentos Login" />
+                  <SidebarItem id="cms" icon={PenTool} label="Conteúdo (CMS)" />
               </nav>
 
               <div className="mt-auto border-t border-gray-100 pt-4">
