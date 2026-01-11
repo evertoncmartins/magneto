@@ -52,6 +52,7 @@ export interface FAQ {
 }
 
 export interface Address {
+  id?: string; // ID opcional para gerenciar múltiplos endereços
   street: string;
   number: string;
   complement?: string;
@@ -59,6 +60,7 @@ export interface Address {
   city: string;
   state: string;
   zipCode: string;
+  isDefault?: boolean;
 }
 
 export interface User {
@@ -69,7 +71,8 @@ export interface User {
   isActive: boolean;
   joinedAt?: string;
   phone?: string;
-  address?: Address;
+  address?: Address; // Endereço ativo/selecionado
+  savedAddresses?: Address[]; // Lista de endereços salvos
 }
 
 export interface Review {

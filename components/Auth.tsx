@@ -8,9 +8,10 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 interface AuthProps {
   onLogin: (user: User) => void;
   initialMode?: 'login' | 'register';
+  user?: User | null;
 }
 
-const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login' }) => {
+const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login', user }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
@@ -22,6 +23,20 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login' }) => {
   // Testimonial State
   const [testimonial, setTestimonial] = useState<LoginTestimonial | null>(null);
   
+  // Handle redirection if user is already logged in or logs in successfully
+  useEffect(() => {
+      if (user) {
+          const from = (location.state as any)?.from;
+          if (from) {
+              navigate(from, { replace: true });
+          } else if (user.isAdmin) {
+              navigate('/admin', { replace: true });
+          } else {
+              navigate('/', { replace: true });
+          }
+      }
+  }, [user, navigate, location.state]);
+
   // Load Logic for Dynamic Testimonials
   useEffect(() => {
       const allTestimonials = getLoginTestimonials().filter(t => t.isActive);
@@ -59,35 +74,22 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login' }) => {
     password: ''
   });
 
-  const handleLoginSuccess = (user: User) => {
-    onLogin(user);
-    const from = (location.state as any)?.from;
-    
-    if (from) {
-      navigate(from, { replace: true });
-    } else if (user.isAdmin) {
-      navigate('/admin', { replace: true });
-    } else {
-      navigate('/', { replace: true });
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      let user;
+      let loggedUser;
       if (mode === 'login') {
-        user = await loginUser(formData.email, formData.password);
+        loggedUser = await loginUser(formData.email, formData.password);
       } else {
-        user = await registerUser(formData.name, formData.email, formData.password);
+        loggedUser = await registerUser(formData.name, formData.email, formData.password);
       }
-      handleLoginSuccess(user);
+      onLogin(loggedUser);
+      // Redirection handled by useEffect
     } catch (err: any) {
       setError(err.message || 'Erro no processamento.');
-    } finally {
       setLoading(false);
     }
   };
@@ -96,11 +98,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login' }) => {
       setGoogleLoading(true);
       setError('');
       try {
-          const user = await loginWithGoogle();
-          handleLoginSuccess(user);
+          const loggedUser = await loginWithGoogle();
+          onLogin(loggedUser);
+          // Redirection handled by useEffect
       } catch (err: any) {
           setError('Erro ao autenticar com Google.');
-      } finally {
           setGoogleLoading(false);
       }
   };
@@ -110,6 +112,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login' }) => {
       setError('');
       setFormData({ name: '', email: '', password: '' });
   };
+
+  if (user) return null; // Or a loading spinner if desired while redirecting
 
   return (
     <div className="flex min-h-screen bg-white font-sans selection:bg-[#B8860B] selection:text-white">

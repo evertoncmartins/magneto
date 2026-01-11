@@ -3,23 +3,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MagnetItem, User, Coupon, Address, ProductTier } from '../types';
 import { 
     ShoppingBag, Trash2, ArrowRight, Package, Tag, MapPin, 
-    CheckCircle, AlertCircle, Loader2, Edit3, Wand2, Box, 
-    Save, Plus, Info, X, ToggleLeft, ToggleRight, Sparkles, 
-    Ruler, ShieldCheck, Pencil, ImageIcon, Truck, CreditCard, 
-    ChevronDown, FileText, Shield, UserCheck, Search, Crown, Layers,
-    Lock, Hash, Navigation, Building, Map, Grid3X3, Wallet, Ticket, Scissors
+    CheckCircle, Loader2, Edit3, Plus, X, Ticket, 
+    ImageIcon, Truck, CreditCard, ChevronDown, Shield, UserCheck, Search, Crown, Layers,
+    Lock, Wallet, Home, Sparkles
 } from 'lucide-react';
 import { calculateUnitPrice, validateCoupon, createOrder, updateUser, getUsers, getPricingRules } from '../services/mockService';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-
-const STATE_MAP: Record<string, string> = {
-    'AC': 'Acre', 'AL': 'Alagoas', 'AP': 'Amapá', 'AM': 'Amazonas', 'BA': 'Bahia', 'CE': 'Ceará',
-    'DF': 'Distrito Federal', 'ES': 'Espírito Santo', 'GO': 'Goiás', 'MA': 'Maranhão', 'MT': 'Mato Grosso',
-    'MS': 'Mato Grosso do Sul', 'MG': 'Minas Gerais', 'PA': 'Paraíba', 'PR': 'Paraná',
-    'PE': 'Pernambuco', 'PI': 'Piauí', 'RJ': 'Rio de Janeiro', 'RN': 'Rio Grande do Norte',
-    'RS': 'Rio Grande do Sul', 'RO': 'Rondônia', 'RR': 'Roraima', 'SC': 'Santa Catarina',
-    'SP': 'São Paulo', 'SE': 'Sergipe', 'TO': 'Tocantins'
-};
+import CheckoutSteps from './CheckoutSteps';
 
 interface CartProps {
     items: MagnetItem[];
@@ -34,13 +24,17 @@ interface CartProps {
 
 const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, user, resumeKit, onUpdateUser, adminDraftUser }) => {
     const navigate = useNavigate();
-    const [tiers, setTiers] = useState<ProductTier[]>(getPricingRules()); // Inicializa direto para evitar delay
+    const location = useLocation();
+    const [tiers, setTiers] = useState<ProductTier[]>(getPricingRules());
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
     const [couponError, setCouponError] = useState('');
     const [isFinishing, setIsFinishing] = useState(false);
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [showPolicyModal, setShowPolicyModal] = useState(false);
+    
+    // Verifica se o endereço foi confirmado nesta sessão através do state da navegação
+    const isAddressConfirmed = location.state?.addressConfirmed;
     
     // Admin Mode State
     const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -51,16 +45,7 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Address State
-    const [isEditingAddress, setIsEditingAddress] = useState(false);
-    const [isFetchingCep, setIsFetchingCep] = useState(false);
-    const [isSavingAddress, setIsSavingAddress] = useState(false);
-    const [addressForm, setAddressForm] = useState<Address>({
-        street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: ''
-    });
-
     useEffect(() => {
-        // Atualiza caso mude no mock
         setTiers(getPricingRules());
     }, []);
 
@@ -92,80 +77,12 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
         }
     }, [user, adminDraftUser]);
 
-    // Update address form logic
-    useEffect(() => {
-        if (selectedClient?.address && (selectedClient.address.street || selectedClient.address.zipCode)) {
-            setAddressForm(selectedClient.address);
-            setIsEditingAddress(false);
-        } else {
-            if (!addressForm.zipCode) {
-                setAddressForm({ street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: '' });
-                setIsEditingAddress(true);
-            }
-        }
-    }, [selectedClient]);
-
     const formatCep = (cep: string) => {
         const clean = cep.replace(/\D/g, '');
         if (clean.length === 8) {
             return `${clean.slice(0, 5)}-${clean.slice(5)}`;
         }
         return clean;
-    };
-
-    const handleCepChange = async (cep: string) => {
-        const cleanCep = cep.replace(/\D/g, '');
-        setAddressForm(prev => ({ ...prev, zipCode: cleanCep }));
-
-        if (cleanCep.length === 8) {
-            setIsFetchingCep(true);
-            try {
-                const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-                const data = await response.json();
-                if (!data.erro) {
-                    setAddressForm(prev => ({
-                        ...prev,
-                        street: data.logradouro || prev.street,
-                        neighborhood: data.bairro || prev.neighborhood,
-                        city: data.localidade || prev.city,
-                        state: data.uf || prev.state
-                    }));
-                }
-            } catch (error) {
-                console.error("CEP Error", error);
-            } finally {
-                setIsFetchingCep(false);
-            }
-        }
-    };
-
-    const handleSaveAddress = async () => {
-        if (!addressForm.street || !addressForm.number || !addressForm.zipCode) {
-            alert("Por favor, preencha o endereço completo.");
-            return;
-        }
-
-        setIsSavingAddress(true);
-        
-        try {
-            if (selectedClient) {
-                await updateUser(selectedClient.id, { address: addressForm });
-                
-                if (!user?.isAdmin || (user.isAdmin && selectedClient.id === user.id)) {
-                    onUpdateUser({ address: addressForm }); 
-                }
-                
-                if (user?.isAdmin) {
-                    setSelectedClient(prev => prev ? ({...prev, address: addressForm}) : prev);
-                }
-            }
-            setIsEditingAddress(false);
-        } catch (e) {
-            console.error("Erro ao salvar endereço", e);
-            alert("Não foi possível salvar o endereço.");
-        } finally {
-            setIsSavingAddress(false);
-        }
     };
 
     const handleApplyCoupon = async () => {
@@ -182,10 +99,7 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
 
     const handleEditKit = (kit: MagnetItem[]) => {
         resumeKit(kit);
-        
-        // Transferência via window global
         (window as any).magnetoEditKit = kit;
-
         const kitSize = kit.length;
         const matchingTier = tiers.find(t => t.photoCount === kitSize) || 
                              tiers.find(t => t.photoCount > kitSize) || 
@@ -195,7 +109,7 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
             state: { 
                 tier: matchingTier,
                 isEditing: true,
-                ts: Date.now() // Timestamp força estado de navegação único
+                ts: Date.now() 
             } 
         });
     };
@@ -207,24 +121,27 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
     };
 
     const handleFinishPurchase = async () => {
-        if (!user) { navigate('/login', { state: { from: '/cart' } }); return; }
+        // Redireciona para /address para que o fluxo de login leve o usuário para lá
+        if (!user) { navigate('/login', { state: { from: '/address' } }); return; }
         
         if (user.isAdmin && !selectedClient) {
             alert("Selecione um cliente para criar o pedido.");
             return;
         }
 
-        if (!addressForm.street || !addressForm.number || !addressForm.zipCode) {
-            alert("Por favor, confirme o endereço de entrega.");
-            setIsEditingAddress(true);
-            const addressSection = document.getElementById('address-section');
-            addressSection?.scrollIntoView({ behavior: 'smooth' });
+        // FLUXO OBRIGATÓRIO DE ENDEREÇO
+        // Se não for admin e o endereço não tiver sido confirmado nesta sessão, redireciona
+        if (!user.isAdmin && !isAddressConfirmed) {
+            navigate('/address');
             return;
         }
 
-        if (isEditingAddress) {
-             alert("Por favor, clique em 'Salvar Endereço' antes de finalizar.");
-             return;
+        const addressToUse = selectedClient?.address;
+
+        if (!addressToUse || !addressToUse.street || !addressToUse.zipCode) {
+            alert("Por favor, selecione um endereço de entrega.");
+            navigate('/address');
+            return;
         }
 
         if (!termsAccepted) { alert("É necessário aceitar os termos de uso."); return; }
@@ -234,7 +151,7 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
             const targetUser = selectedClient || user;
             const derivedConsent = items.length > 0 ? !!items[0].socialConsent : true;
 
-            await createOrder(targetUser, items, total, addressForm, derivedConsent, !!user.isAdmin);
+            await createOrder(targetUser, items, total, addressToUse, derivedConsent, !!user.isAdmin);
             onClear();
             if (user.isAdmin) {
                 navigate('/admin');
@@ -248,13 +165,6 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
             setIsFinishing(false);
         }
     };
-
-    const filteredUsers = allUsers.filter(u => 
-        !u.isAdmin && (
-            u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            u.email.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    );
 
     const unitPrice = calculateUnitPrice(items.length);
     const subtotal = items.length * unitPrice;
@@ -297,17 +207,12 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
         }
     }
 
-    // Helper para garantir o nome correto do Kit com Fallback
     const getKitInfo = (count: number) => {
-        // Tenta achar exato no estado
         const exact = tiers.find(t => t.photoCount === count);
         if (exact) return { name: exact.name, isRecommended: exact.isRecommended };
-
-        // Fallback hardcoded para garantir a UI correta se o estado falhar ou count for aproximado
         if (count === 9) return { name: 'Start', isRecommended: false };
         if (count === 18) return { name: 'Memories', isRecommended: true };
         if (count === 27) return { name: 'Gallery', isRecommended: false };
-
         return { name: 'Personalizado', isRecommended: false };
     };
 
@@ -332,8 +237,15 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
     const inputIconClass = "absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors pointer-events-none";
     const inputFieldClass = "w-full h-14 pl-14 pr-4 bg-[#F5F5F7] border border-transparent rounded-xl text-base text-[#1d1d1f] outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B]/20 transition-all placeholder:text-gray-400 shadow-sm";
 
+    // Endereço a ser exibido (do cliente selecionado no admin ou do usuário logado)
+    const currentAddress = selectedClient?.address;
+
     return (
         <div className="min-h-screen bg-[#F5F5F7] pt-28 pb-24 px-4 md:px-6 font-sans">
+            
+            {/* Stepper no topo */}
+            <CheckoutSteps currentStep={3} />
+
             <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
                 
                 {/* Left Column: Items */}
@@ -353,15 +265,11 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
                         {kits.map((kit, idx) => {
                             const kitSize = kit.length;
                             const { name: kitName, isRecommended } = getKitInfo(kitSize);
-                            
-                            // Calcula preço proporcional ou do tier
                             const tierMatch = tiers.find(t => t.photoCount === kitSize);
                             const price = tierMatch ? tierMatch.price : (kitSize * 4.90);
                             
                             return (
                                 <div key={idx} className="group relative bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                                    
-                                    {/* Black & Gold Premium Header */}
                                     <div className="bg-[#1d1d1f] px-6 py-4 flex justify-between items-center relative overflow-hidden">
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#B8860B]/10 blur-2xl rounded-full"></div>
                                         <div className="relative z-10 flex items-center gap-3">
@@ -383,7 +291,6 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
                                         </div>
                                     </div>
 
-                                    {/* Content & Preview */}
                                     <div className="p-6">
                                         <div className="mb-6">
                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -407,14 +314,13 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
                                             </div>
                                         </div>
 
-                                        {/* Footer Actions */}
                                         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-50">
                                             <div className="flex gap-3 w-full sm:w-auto">
                                                 <button 
                                                     onClick={() => handleEditKit(kit)}
                                                     className="flex-1 sm:flex-none px-6 py-2.5 bg-white border border-[#1d1d1f] text-[#1d1d1f] rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#1d1d1f] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2 group/btn"
                                                 >
-                                                    <Pencil size={12} /> Editar
+                                                    <Edit3 size={12} /> Editar
                                                 </button>
                                                 <button 
                                                     onClick={() => handleRemoveKit(kit)}
@@ -435,7 +341,6 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
                             );
                         })}
 
-                        {/* Add Another Kit Button */}
                         <button 
                             onClick={() => { resumeKit([]); navigate('/studio'); }}
                             className="w-full py-8 border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] flex flex-col items-center justify-center gap-3 hover:border-[#B8860B] hover:text-[#B8860B] hover:bg-white transition-all group bg-gray-50/50 hover:shadow-lg active:scale-[0.99]"
@@ -451,128 +356,36 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
                 {/* Right Column: Summary & Checkout */}
                 <div className="lg:col-span-4 space-y-6">
                     
-                    {/* Address Section */}
+                    {/* Address Section (Read-Only with Change Button) */}
                     <div id="address-section" className="bg-white rounded-2xl p-6 md:p-8 border border-gray-100 shadow-xl relative overflow-hidden">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-[0.3em] flex items-center gap-2">
                                 <Truck size={16} className="text-[#B8860B]"/> Entrega
                             </h3>
-                            {!isEditingAddress && addressForm.zipCode && (
-                                <button onClick={() => setIsEditingAddress(true)} className="text-[9px] font-bold text-[#B8860B] hover:text-[#966d09] uppercase tracking-widest underline decoration-dotted">Alterar</button>
-                            )}
+                            <Link to="/address" className="text-[9px] font-bold text-[#B8860B] hover:text-[#966d09] uppercase tracking-widest underline decoration-dotted">
+                                {currentAddress && currentAddress.street && isAddressConfirmed ? "Alterar" : "Selecionar"}
+                            </Link>
                         </div>
 
-                        {isEditingAddress ? (
-                            <div className="space-y-3 animate-fade-in">
-                                <div className={inputWrapperClass}>
-                                    <Search className={inputIconClass} size={18}/>
-                                    <input 
-                                        type="tel" 
-                                        inputMode="numeric"
-                                        placeholder="CEP" 
-                                        maxLength={9}
-                                        value={addressForm.zipCode}
-                                        onChange={e => handleCepChange(e.target.value)}
-                                        className={inputFieldClass}
-                                    />
-                                    {isFetchingCep && <div className="absolute right-4 top-1/2 -translate-y-1/2"><Loader2 size={18} className="animate-spin text-[#B8860B]"/></div>}
+                        {currentAddress && currentAddress.street && isAddressConfirmed ? (
+                            <div className="bg-[#F5F5F7] p-5 rounded-xl border border-gray-100 flex items-start gap-4 animate-fade-in">
+                                <div className="mt-1 bg-white p-2 rounded-lg border border-gray-200 text-[#B8860B] shadow-sm"><MapPin size={20} /></div>
+                                <div>
+                                    <p className="font-bold text-base text-[#1d1d1f]">{currentAddress.street}, {currentAddress.number}</p>
+                                    <p className="text-[#86868b] text-xs mt-1">{currentAddress.neighborhood} • {currentAddress.city}/{currentAddress.state}</p>
+                                    {currentAddress.complement && <p className="text-[#86868b] text-xs">Comp: {currentAddress.complement}</p>}
+                                    <p className="text-[10px] text-[#1d1d1f] font-bold uppercase tracking-widest mt-3 inline-block bg-white px-2 py-1 rounded border border-gray-200">CEP: {formatCep(currentAddress.zipCode)}</p>
                                 </div>
-                                
-                                <div className="flex gap-3">
-                                    <div className={`${inputWrapperClass} flex-[2]`}>
-                                        <Map className={inputIconClass} size={18}/>
-                                        <input 
-                                            type="text" 
-                                            placeholder="Rua" 
-                                            value={addressForm.street}
-                                            onChange={e => setAddressForm({...addressForm, street: e.target.value})}
-                                            className={inputFieldClass}
-                                        />
-                                    </div>
-                                    <div className={`${inputWrapperClass} flex-1`}>
-                                        <input 
-                                            type="text" 
-                                            placeholder="Nº" 
-                                            value={addressForm.number}
-                                            onChange={e => setAddressForm({...addressForm, number: e.target.value})}
-                                            className={`${inputFieldClass} px-4 text-center`} 
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className={inputWrapperClass}>
-                                    <Building className={inputIconClass} size={18}/>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Complemento" 
-                                        value={addressForm.complement}
-                                        onChange={e => setAddressForm({...addressForm, complement: e.target.value})}
-                                        className={inputFieldClass}
-                                    />
-                                </div>
-
-                                <div className={inputWrapperClass}>
-                                    <Navigation className={inputIconClass} size={18}/>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Bairro" 
-                                        value={addressForm.neighborhood}
-                                        onChange={e => setAddressForm({...addressForm, neighborhood: e.target.value})}
-                                        className={inputFieldClass}
-                                    />
-                                </div>
-
-                                <div className="flex gap-3">
-                                    <div className={`${inputWrapperClass} flex-[2]`}>
-                                        <MapPin className={inputIconClass} size={18}/>
-                                        <input 
-                                            type="text" 
-                                            placeholder="Cidade" 
-                                            value={addressForm.city}
-                                            onChange={e => setAddressForm({...addressForm, city: e.target.value})}
-                                            className={inputFieldClass}
-                                        />
-                                    </div>
-                                    <div className={`${inputWrapperClass} flex-1`}>
-                                        <input 
-                                            type="text" 
-                                            placeholder="UF" 
-                                            maxLength={2}
-                                            value={addressForm.state}
-                                            onChange={e => setAddressForm({...addressForm, state: e.target.value})}
-                                            className={`${inputFieldClass} px-4 text-center`}
-                                        />
-                                    </div>
-                                </div>
-
-                                <button 
-                                    onClick={handleSaveAddress}
-                                    disabled={!addressForm.street || isSavingAddress}
-                                    className="w-full h-14 mt-2 bg-[#1d1d1f] text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95"
-                                >
-                                    {isSavingAddress ? <Loader2 size={18} className="animate-spin"/> : <><Save size={16}/> Salvar Endereço</>}
-                                </button>
                             </div>
                         ) : (
-                            <div className="bg-[#F5F5F7] p-5 rounded-xl border border-gray-100 flex items-start gap-4">
-                                {addressForm.street ? (
-                                    <>
-                                        <div className="mt-1 bg-white p-2 rounded-lg border border-gray-200 text-[#B8860B] shadow-sm"><MapPin size={20} /></div>
-                                        <div>
-                                            <p className="font-bold text-base text-[#1d1d1f]">{addressForm.street}, {addressForm.number}</p>
-                                            <p className="text-[#86868b] text-xs mt-1">{addressForm.neighborhood} • {addressForm.city}/{addressForm.state}</p>
-                                            {addressForm.complement && <p className="text-[#86868b] text-xs">Comp: {addressForm.complement}</p>}
-                                            <p className="text-[10px] text-[#1d1d1f] font-bold uppercase tracking-widest mt-3 inline-block bg-white px-2 py-1 rounded border border-gray-200">CEP: {formatCep(addressForm.zipCode)}</p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-center w-full py-4">
-                                        <p className="text-[#86868b] text-xs mb-4">Nenhum endereço cadastrado.</p>
-                                        <button onClick={() => setIsEditingAddress(true)} className="px-6 py-3 bg-white border border-gray-200 text-[#1d1d1f] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-[#B8860B] hover:text-[#B8860B] transition-all shadow-sm active:scale-95">
-                                            Adicionar Endereço
-                                        </button>
-                                    </div>
-                                )}
+                            <div className="text-center w-full py-8 bg-[#F5F5F7] rounded-xl border border-dashed border-gray-200">
+                                <Home className="mx-auto text-gray-300 mb-2" size={24}/>
+                                <p className="text-[#86868b] text-xs mb-4">
+                                    {user?.isAdmin ? 'Nenhum endereço selecionado.' : 'Confirme seu endereço de entrega.'}
+                                </p>
+                                <Link to="/address" className="px-6 py-3 bg-white border border-gray-200 text-[#1d1d1f] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-[#B8860B] hover:text-[#B8860B] transition-all shadow-sm active:scale-95 inline-block">
+                                    Escolher Endereço
+                                </Link>
                             </div>
                         )}
                     </div>
@@ -649,7 +462,12 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
                             className={`w-full py-5 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 transition-all transform hover:-translate-y-1 active:translate-y-0 active:shadow-sm ${termsAccepted ? 'bg-[#1d1d1f] text-white hover:bg-black hover:shadow-2xl' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
                         >
                             {isFinishing ? <Loader2 className="animate-spin" size={20} /> : (
-                                user?.isAdmin ? <><Shield size={18}/> Gerar Pedido (Admin)</> : <><Lock size={16}/> Finalizar Compra Segura</>
+                                // Muda o texto e ícone baseado se o endereço já foi confirmado
+                                !isAddressConfirmed && !user?.isAdmin ? (
+                                    <><Truck size={16}/> Continuar para Endereço</>
+                                ) : (
+                                    user?.isAdmin ? <><Shield size={18}/> Gerar Pedido (Admin)</> : <><Lock size={16}/> Finalizar Compra Segura</>
+                                )
                             )}
                         </button>
                         

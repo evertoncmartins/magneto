@@ -15,9 +15,10 @@ import Auth from './components/Auth';
 import AdminDashboard from './components/AdminDashboard';
 import UserDashboard from './components/UserDashboard';
 import Studio from './components/Studio';
-import PricingSelection from './components/PricingSelection'; // Importado
+import PricingSelection from './components/PricingSelection'; 
 import UserProfileModal from './components/UserProfileModal';
 import Cart from './components/Cart';
+import AddressPage from './components/AddressPage';
 
 // Novas Páginas
 import { PrivacyPolicy, TermsOfUse, ExchangePolicy, ShippingPolicy } from './components/LegalPages';
@@ -61,7 +62,7 @@ const HeroSection = () => {
          
          <div className="flex flex-col sm:flex-row gap-4">
               <Link 
-                to="/studio" // Redireciona para /studio, que o roteador vai tratar
+                to="/studio" 
                 className="px-10 py-4 bg-[#1d1d1f] text-white rounded-md font-bold text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-3"
               >
                 Criar meus ímãs <ArrowRight size={16} />
@@ -76,7 +77,6 @@ const HeroSection = () => {
          </div>
          
          <div className="mt-24 w-full max-w-4xl relative">
-             {/* PERFORMANCE FIX: Blur hidden on mobile to prevent crash */}
              <div className="hidden md:block absolute -inset-4 bg-gray-100/50 blur-3xl rounded-full"></div>
              <img 
                 src="https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1200&auto=format&fit=crop" 
@@ -326,7 +326,13 @@ const NavbarWrapper = ({ user, cartCount, onLogout, onOpenProfile }: { user: Use
                             )}
                         </div>
                     ) : (
-                        <Link to="/login" className="px-5 py-2.5 border border-[#1d1d1f]/50 rounded-md text-[10px] font-bold uppercase tracking-widest text-[#1d1d1f]">Entrar</Link>
+                        <Link 
+                            to="/login" 
+                            state={{ from: location.pathname }}
+                            className="px-5 py-2.5 border border-[#1d1d1f]/50 rounded-md text-[10px] font-bold uppercase tracking-widest text-[#1d1d1f]"
+                        >
+                            Entrar
+                        </Link>
                     )}
                     <Link to="/cart" className="p-2.5 text-[#1d1d1f] relative">
                         <ShoppingBag size={22} />
@@ -425,7 +431,6 @@ const App: React.FC = () => {
     };
 
     // Definição das rotas onde o Footer deve aparecer
-    // Removido '/studio' desta lista para manter o foco na escolha do kit
     const showFooter = [
         '/', 
         '/history', '/process', '/sustainability', '/contact', '/faq',
@@ -461,8 +466,8 @@ const App: React.FC = () => {
                 <Route path="/shipping" element={<ShippingPolicy />} />
 
                 {/* App Routes */}
-                <Route path="/studio" element={<PricingSelection />} /> {/* Step 1: Select Tier */}
-                <Route path="/studio/upload" element={<Studio addToCart={addToCart} initialImages={studioDraft} />} /> {/* Step 2: Upload */}
+                <Route path="/studio" element={<PricingSelection />} /> 
+                <Route path="/studio/upload" element={<Studio addToCart={addToCart} initialImages={studioDraft} />} /> 
                 <Route path="/admin/studio/:orderId" element={
                     user?.isAdmin ? <Studio addToCart={() => {}} /> : <Navigate to="/login" />
                 } />
@@ -479,7 +484,13 @@ const App: React.FC = () => {
                         adminDraftUser={adminDraftUser} 
                     />
                 } />
-                <Route path="/login" element={user ? <Navigate to="/" /> : <Auth onLogin={handleLogin} />} />
+                <Route path="/address" element={
+                    <AddressPage 
+                        user={user} 
+                        onUpdateUser={(d) => setUser(p => p ? {...p, ...d} : p)}
+                    />
+                } />
+                <Route path="/login" element={<Auth onLogin={handleLogin} user={user} />} />
                 <Route path="/admin" element={user?.isAdmin ? <AdminDashboard onLogout={handleLogout} onStartOrder={handleAdminStartOrder} /> : <Navigate to="/login" />} />
                 <Route path="/my-orders" element={user ? <UserDashboard user={user} /> : <Navigate to="/login" />} />
                 <Route path="*" element={<Navigate to="/" />} />
