@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
     Edit3, Plus, Search, MapPin, Phone, History, 
     X, ChevronLeft, ChevronRight, ChevronDown, 
-    Mail, Calendar, ShieldCheck, ChevronsLeft, ChevronsRight, Trash2, Ban, Hash, Home, Shield, FileText
+    Mail, Calendar, ShieldCheck, ChevronsLeft, ChevronsRight, Trash2, Ban, Hash, Home, Shield, FileText, CheckCircle
 } from 'lucide-react';
 import { User } from '../../types';
 import { deleteUser, getAdminOrders } from '../../services/mockService';
@@ -330,16 +330,36 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                                         <div>
                                             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1"><Home size={10}/> Endereços Cadastrados</p>
                                             {allAddresses.length > 0 ? (
-                                                <div className="space-y-2">
-                                                    {allAddresses.map((addr, idx) => (
-                                                        <div key={addr.id || idx} className={`p-2 rounded border bg-white text-[10px] ${user.address?.id === addr.id ? 'border-[#B8860B]/30 bg-[#FFF9E6]/30' : 'border-gray-100'}`}>
-                                                            <div className="flex justify-between items-center mb-0.5">
-                                                                <span className="font-bold text-[#1d1d1f]">{addr.nickname || 'Endereço'}</span>
-                                                                {user.address?.id === addr.id && <span className="text-[8px] text-[#B8860B] font-bold uppercase">Principal</span>}
+                                                <div className="space-y-3">
+                                                    {allAddresses.map((addr, idx) => {
+                                                        const isMain = user.address?.id === addr.id;
+                                                        return (
+                                                            <div 
+                                                                key={addr.id || idx} 
+                                                                className={`p-3 rounded-xl border transition-all bg-white relative ${isMain ? 'border-[#B8860B] ring-1 ring-[#B8860B]/20 shadow-sm' : 'border-gray-200'}`}
+                                                            >
+                                                                <div className="flex-1 min-w-0">
+                                                                    {addr.nickname && (
+                                                                        <div className="mb-1">
+                                                                            <span className="text-[8px] bg-[#F5F5F7] px-2 py-0.5 rounded font-bold uppercase tracking-widest text-[#1d1d1f]">{addr.nickname}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    
+                                                                    <h4 className="font-bold text-[#1d1d1f] text-xs mb-0.5 leading-tight">{addr.street}, {addr.number}</h4>
+                                                                    <p className="text-[10px] text-gray-500 mb-0.5">{addr.neighborhood} - {addr.city}/{addr.state.length === 2 ? addr.state : addr.state.split(' - ').pop()}</p>
+                                                                    
+                                                                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                                        <p className="text-[9px] text-gray-400">CEP: {addr.zipCode}</p>
+                                                                        {addr.complement && (
+                                                                            <span className="text-[9px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 font-medium uppercase tracking-wide">
+                                                                                {addr.complement}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <p className="text-gray-500 leading-tight">{addr.street}, {addr.number} - {addr.city}/{addr.state}</p>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             ) : (
                                                 <p className="text-[10px] text-gray-400 italic">Nenhum endereço cadastrado.</p>

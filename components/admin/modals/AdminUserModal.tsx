@@ -555,6 +555,11 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
                                                                     <p className="text-sm font-bold text-[#1d1d1f] mt-1">{addr.street}, {addr.number}</p>
                                                                     <p className="text-xs text-gray-500">{addr.neighborhood} - {addr.city}/{addr.state.split(' - ').pop()}</p>
                                                                     <p className="text-[10px] text-gray-400 mt-0.5">CEP: {addr.zipCode}</p>
+                                                                    {addr.complement && (
+                                                                        <p className="text-[10px] text-[#1d1d1f] mt-1.5 font-medium bg-[#F9F9FA] px-2 py-1 rounded inline-block border border-gray-100">
+                                                                            <span className="text-gray-400 uppercase text-[9px] tracking-wide mr-1">Comp:</span>{addr.complement}
+                                                                        </p>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                             <div className="flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
