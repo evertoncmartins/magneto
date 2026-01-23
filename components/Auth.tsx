@@ -26,13 +26,18 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login', user }) => 
   // Handle redirection if user is already logged in or logs in successfully
   useEffect(() => {
       if (user) {
-          const from = (location.state as any)?.from;
-          if (from) {
-              navigate(from, { replace: true });
-          } else if (user.isAdmin) {
+          // Lógica de Prioridade de Redirecionamento
+          if (user.isAdmin) {
+              // Se for Admin, vai direto para o painel, ignorando o histórico 'from'
               navigate('/admin', { replace: true });
           } else {
-              navigate('/', { replace: true });
+              // Se for Usuário Comum, respeita o fluxo de origem (ex: carrinho) ou vai para home
+              const from = (location.state as any)?.from;
+              if (from) {
+                  navigate(from, { replace: true });
+              } else {
+                  navigate('/', { replace: true });
+              }
           }
       }
   }, [user, navigate, location.state]);

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, User as UserIcon, MapPin, Plus, Edit3, Trash2, CheckCircle, Search, Tag, Building, Hash, Map, Navigation, Check, AlertCircle, Shield, Ban, FileText } from 'lucide-react';
+import { X, Loader2, User as UserIcon, MapPin, Plus, Edit3, Trash2, CheckCircle, Search, Tag, Building, Hash, Map, Navigation, Check, AlertCircle, Shield, Ban, FileText, AlertTriangle } from 'lucide-react';
 import { User, Address } from '../../../types';
 import { addUser, updateUser, deleteUser, getAdminOrders } from '../../../services/mockService';
 
@@ -29,8 +29,9 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
     const [emailError, setEmailError] = useState('');
     const [phoneError, setPhoneError] = useState('');
     
-    // Delete Modal State
+    // Modals State
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [showDuplicateAddressModal, setShowDuplicateAddressModal] = useState(false);
     
     // Block Delete Logic
     const [deleteBlockType, setDeleteBlockType] = useState<'admin' | 'history' | null>(null);
@@ -61,6 +62,7 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
             setEditingAddressId(null);
             setIsDirty(false); // Reset dirty state on open
             setShowDeleteConfirmation(false);
+            setShowDuplicateAddressModal(false);
             setDeleteBlockType(null); // Reset delete error modal
             setEmailError('');
             setPhoneError('');
@@ -243,9 +245,33 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
 
             if (Object.keys(newErrors).length > 0) {
                 setAddressErrors(newErrors);
-                // Não exibe alert, mostra erro visual nos campos
                 return;
             }
+
+            // --- VERIFICAÇÃO DE DUPLICIDADE ---
+            const isDuplicate = finalAddresses.some(addr => {
+                // Ignora o endereço que está sendo editado (comparação com ele mesmo)
+                if (editingAddressId && addr.id === editingAddressId) return false;
+
+                // Normalização para comparação
+                const cleanZip = (z: string) => z.replace(/\D/g, '');
+                const cleanStr = (s?: string) => (s || '').trim().toLowerCase();
+
+                // Critério Rigoroso: CEP + Número + Complemento iguais
+                // Se o logradouro muda, o CEP geralmente muda. Se for CEP único de cidade pequena, o logradouro + número diferenciam.
+                // Mas a forma mais segura de duplicidade "exata" é CEP + Número + Complemento.
+                return (
+                    cleanZip(addr.zipCode) === cleanZip(addressFormData.zipCode) &&
+                    cleanStr(addr.number) === cleanStr(addressFormData.number) &&
+                    cleanStr(addr.complement) === cleanStr(addressFormData.complement)
+                );
+            });
+
+            if (isDuplicate) {
+                setShowDuplicateAddressModal(true);
+                return;
+            }
+            // ----------------------------------
 
             let newId = editingAddressId;
             const addrPayload = { ...addressFormData };
@@ -569,87 +595,71 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
                                         </div>
                                         
                                         <div className="space-y-4">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className={labelClasses}>Apelido (Opcional)</label>
-                                                    <div className="relative">
-                                                        <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                                                        <input 
-                                                            value={addressFormData.nickname} 
-                                                            onChange={e => { handleAddressChange('nickname', e.target.value); }}
-                                                            className={`${inputClasses} pl-9`} 
-                                                            placeholder="Ex: Escritório"
-                                                        />
-                                                    </div>
+                                            <div>
+                                                <label className={labelClasses}>CEP</label>
+                                                <div className="relative">
+                                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                                                    <input 
+                                                        value={addressFormData.zipCode} 
+                                                        onChange={e => { handleCepLookup(e.target.value); setIsDirty(true); }}
+                                                        className={`${inputClasses} pl-9 ${addressErrors.zipCode ? 'border-red-300 focus:ring-red-200 text-red-600' : ''}`} 
+                                                        placeholder="00000-000"
+                                                        maxLength={9}
+                                                    />
+                                                    {isFetchingCep && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#B8860B]"/>}
                                                 </div>
-                                                <div>
-                                                    <label className={labelClasses}>CEP</label>
-                                                    <div className="relative">
-                                                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                                                        <input 
-                                                            value={addressFormData.zipCode} 
-                                                            onChange={e => { handleCepLookup(e.target.value); setIsDirty(true); }}
-                                                            className={`${inputClasses} pl-9 ${addressErrors.zipCode ? 'border-red-300 focus:ring-red-200 text-red-600' : ''}`} 
-                                                            placeholder="00000-000"
-                                                            maxLength={9}
-                                                        />
-                                                        {isFetchingCep && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#B8860B]"/>}
-                                                    </div>
-                                                    {addressErrors.zipCode && <ErrorMsg msg={addressErrors.zipCode} />}
-                                                </div>
+                                                {addressErrors.zipCode && <ErrorMsg msg={addressErrors.zipCode} />}
                                             </div>
 
-                                            <div className="grid grid-cols-3 gap-4">
-                                                <div className="col-span-2">
-                                                    <label className={labelClasses}>LOGRADOURO</label>
-                                                    <div className="relative">
-                                                        <Map size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                                                        <input 
-                                                            value={addressFormData.street} 
-                                                            onChange={e => handleAddressChange('street', e.target.value)} 
-                                                            className={`${inputClasses} pl-9 ${addressErrors.street ? 'border-red-300 focus:ring-red-200 text-red-600' : ''}`} 
-                                                        />
-                                                    </div>
-                                                    {addressErrors.street && <ErrorMsg msg={addressErrors.street} />}
+                                            <div>
+                                                <label className={labelClasses}>LOGRADOURO</label>
+                                                <div className="relative">
+                                                    <Map size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                                                    <input 
+                                                        value={addressFormData.street} 
+                                                        onChange={e => handleAddressChange('street', e.target.value)} 
+                                                        className={`${inputClasses} pl-9 ${addressErrors.street ? 'border-red-300 focus:ring-red-200 text-red-600' : ''}`} 
+                                                    />
                                                 </div>
-                                                <div>
-                                                    <label className={labelClasses}>Número</label>
-                                                    <div className="relative">
-                                                        <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                                                        <input 
-                                                            value={addressFormData.number} 
-                                                            onChange={e => handleAddressChange('number', e.target.value)} 
-                                                            className={`${inputClasses} pl-9 ${addressErrors.number ? 'border-red-300 focus:ring-red-200 text-red-600' : ''}`} 
-                                                        />
-                                                    </div>
-                                                    {addressErrors.number && <ErrorMsg msg={addressErrors.number} />}
+                                                {addressErrors.street && <ErrorMsg msg={addressErrors.street} />}
+                                            </div>
+                                            
+                                            <div>
+                                                <label className={labelClasses}>Número</label>
+                                                <div className="relative">
+                                                    <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                                                    <input 
+                                                        value={addressFormData.number} 
+                                                        onChange={e => handleAddressChange('number', e.target.value)} 
+                                                        className={`${inputClasses} pl-9 ${addressErrors.number ? 'border-red-300 focus:ring-red-200 text-red-600' : ''}`} 
+                                                    />
                                                 </div>
+                                                {addressErrors.number && <ErrorMsg msg={addressErrors.number} />}
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className={labelClasses}>Bairro</label>
-                                                    <div className="relative">
-                                                        <Navigation size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                                                        <input 
-                                                            value={addressFormData.neighborhood} 
-                                                            onChange={e => handleAddressChange('neighborhood', e.target.value)} 
-                                                            className={`${inputClasses} pl-9 ${addressErrors.neighborhood ? 'border-red-300 focus:ring-red-200 text-red-600' : ''}`} 
-                                                        />
-                                                    </div>
-                                                    {addressErrors.neighborhood && <ErrorMsg msg={addressErrors.neighborhood} />}
+                                            <div>
+                                                <label className={labelClasses}>Bairro</label>
+                                                <div className="relative">
+                                                    <Navigation size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                                                    <input 
+                                                        value={addressFormData.neighborhood} 
+                                                        onChange={e => handleAddressChange('neighborhood', e.target.value)} 
+                                                        className={`${inputClasses} pl-9 ${addressErrors.neighborhood ? 'border-red-300 focus:ring-red-200 text-red-600' : ''}`} 
+                                                    />
                                                 </div>
-                                                <div>
-                                                    <label className={labelClasses}>Complemento</label>
-                                                    <div className="relative">
-                                                        <Building size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                                                        <input 
-                                                            value={addressFormData.complement} 
-                                                            onChange={e => handleAddressChange('complement', e.target.value)} 
-                                                            className={`${inputClasses} pl-9`} 
-                                                            placeholder="Opcional" 
-                                                        />
-                                                    </div>
+                                                {addressErrors.neighborhood && <ErrorMsg msg={addressErrors.neighborhood} />}
+                                            </div>
+                                            
+                                            <div>
+                                                <label className={labelClasses}>Complemento</label>
+                                                <div className="relative">
+                                                    <Building size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                                                    <input 
+                                                        value={addressFormData.complement} 
+                                                        onChange={e => handleAddressChange('complement', e.target.value)} 
+                                                        className={`${inputClasses} pl-9`} 
+                                                        placeholder="Opcional" 
+                                                    />
                                                 </div>
                                             </div>
 
@@ -713,6 +723,31 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
                     </div>
                 </div>
             </div>
+
+            {/* DUPLICATE ADDRESS WARNING MODAL */}
+            {showDuplicateAddressModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setShowDuplicateAddressModal(false)}></div>
+                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-6 text-center z-10">
+                        <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle size={32} />
+                        </div>
+                        <h3 className="font-serif font-bold text-xl text-[#1d1d1f] mb-2">Endereço Duplicado</h3>
+                        <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                            Já existe um endereço cadastrado com este <strong>CEP, Número e Complemento</strong> para este cliente. <br/><br/>
+                            <span className="block text-xs bg-gray-50 p-2 rounded text-gray-400">
+                                {addressFormData.street}, {addressFormData.number} {addressFormData.complement ? `(${addressFormData.complement})` : ''} - {addressFormData.zipCode}
+                            </span>
+                        </p>
+                        <button 
+                            onClick={() => setShowDuplicateAddressModal(false)}
+                            className="w-full py-3 bg-[#1d1d1f] text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-black transition-all"
+                        >
+                            Entendido
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* DELETE CONFIRMATION MODAL */}
             {showDeleteConfirmation && editingUser && (

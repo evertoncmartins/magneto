@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Plus, CheckCircle, Trash2, Home, Loader2, Search, Navigation, Building, Map, ArrowLeft, Hash, Tag, Edit3, Save } from 'lucide-react';
+import { MapPin, Plus, CheckCircle, Trash2, Home, Loader2, Search, Navigation, Building, Map, ArrowLeft, Hash, Edit3, Save, AlertCircle } from 'lucide-react';
 import { User, Address } from '../types';
 import { updateUser } from '../services/mockService';
 import CheckoutSteps from './CheckoutSteps';
@@ -39,6 +39,9 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
         zipCode: ''
     });
 
+    // Error State
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
     useEffect(() => {
         if (!user) {
             navigate('/login', { state: { from: '/address' } });
@@ -49,10 +52,27 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
         }
     }, [user, navigate]);
 
+    // Helpers
+    const clearError = (field: string) => {
+        if (errors[field]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[field];
+                return newErrors;
+            });
+        }
+    };
+
+    const handleInputChange = (field: keyof Address, value: string) => {
+        setAddressForm(prev => ({ ...prev, [field]: value }));
+        clearError(field);
+    };
+
     // Handlers
     const handleCepChange = async (cep: string) => {
         const cleanCep = cep.replace(/\D/g, '');
         setAddressForm(prev => ({ ...prev, zipCode: cleanCep }));
+        clearError('zipCode');
 
         if (cleanCep.length === 8) {
             setIsFetchingCep(true);
@@ -71,6 +91,16 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
                         city: data.localidade || prev.city,
                         state: formattedState
                     }));
+                    
+                    // Limpa erros dos campos preenchidos automaticamente
+                    setErrors(prev => {
+                        const newErrors = { ...prev };
+                        if (data.logradouro) delete newErrors.street;
+                        if (data.bairro) delete newErrors.neighborhood;
+                        if (data.localidade) delete newErrors.city;
+                        if (data.uf) delete newErrors.state;
+                        return newErrors;
+                    });
                 }
             } catch (error) {
                 console.error("CEP Error", error);
@@ -83,13 +113,32 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
     const handleEditAddress = (addr: Address) => {
         setAddressForm(addr);
         setEditingId(addr.id || null);
+        setErrors({}); // Limpa erros ao abrir edição
         setIsFormOpen(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const validateForm = () => {
+        const newErrors: Record<string, string> = {};
+        
+        if (!addressForm.zipCode) newErrors.zipCode = 'CEP OBRIGATÓRIO';
+        if (!addressForm.street) newErrors.street = 'LOGRADOURO OBRIGATÓRIO';
+        if (!addressForm.number) newErrors.number = 'NÚMERO OBRIGATÓRIO';
+        if (!addressForm.neighborhood) newErrors.neighborhood = 'BAIRRO OBRIGATÓRIO';
+        if (!addressForm.city) newErrors.city = 'CIDADE OBRIGATÓRIA';
+        if (!addressForm.state) newErrors.state = 'ESTADO OBRIGATÓRIO';
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSaveAddress = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
+
+        if (!validateForm()) {
+            return;
+        }
         
         setIsSaving(true);
         try {
@@ -134,6 +183,7 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
         setIsFormOpen(false);
         setEditingId(null);
         setAddressForm({ nickname: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: '' });
+        setErrors({});
     };
 
     const handleSelectAddress = async (addr: Address) => {
@@ -172,10 +222,23 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
         return clean;
     };
 
-    // Estilos de Input (Reduzidos e Padronizados - h-11 e text-sm)
+    // Função para gerar classes dinâmicas de input
+    const getInputClass = (hasError: boolean) => 
+        `w-full h-11 pl-10 pr-4 bg-[#F5F5F7] border rounded-lg text-sm text-[#1d1d1f] outline-none transition-all placeholder:text-gray-400 shadow-sm ${
+            hasError 
+            ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-100 text-red-600 placeholder:text-red-300' 
+            : 'border-transparent focus:bg-white focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10'
+        }`;
+
     const inputWrapperClass = "relative w-full group";
-    const inputIconClass = "absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors pointer-events-none";
-    const inputFieldClass = "w-full h-11 pl-10 pr-4 bg-[#F5F5F7] border border-transparent rounded-lg text-sm text-[#1d1d1f] outline-none focus:bg-white focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 transition-all placeholder:text-gray-400 shadow-sm";
+    const inputIconClass = "absolute left-3 top-1/2 -translate-y-1/2 transition-colors pointer-events-none";
+
+    // Componente de Mensagem de Erro
+    const ErrorMsg = ({ msg }: { msg: string }) => (
+        <p className="text-red-500 text-[10px] mt-1.5 flex items-center gap-1 font-bold uppercase tracking-wide animate-pulse">
+            <AlertCircle size={10}/> {msg}
+        </p>
+    );
 
     if (!user) return null;
 
@@ -286,108 +349,109 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
                             </div>
                             
                             <form onSubmit={handleSaveAddress} className="space-y-4">
-                                <div className={inputWrapperClass}>
-                                    <Tag className={inputIconClass} size={16}/>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Apelido (Ex: Casa, Trabalho, Mãe)" 
-                                        value={addressForm.nickname || ''}
-                                        onChange={e => setAddressForm({...addressForm, nickname: e.target.value})}
-                                        className={inputFieldClass}
-                                    />
-                                </div>
-
-                                <div className={inputWrapperClass}>
-                                    <Search className={inputIconClass} size={16}/>
-                                    <input 
-                                        type="tel" 
-                                        inputMode="numeric"
-                                        placeholder="CEP" 
-                                        maxLength={9}
-                                        value={addressForm.zipCode}
-                                        onChange={e => handleCepChange(e.target.value)}
-                                        className={inputFieldClass}
-                                        required
-                                    />
-                                    {isFetchingCep && <div className="absolute right-4 top-1/2 -translate-y-1/2"><Loader2 size={16} className="animate-spin text-[#B8860B]"/></div>}
+                                <div>
+                                    <div className={inputWrapperClass}>
+                                        <Search className={`${inputIconClass} ${errors.zipCode ? 'text-red-400' : 'text-gray-400 group-focus-within:text-[#B8860B]'}`} size={16}/>
+                                        <input 
+                                            type="tel" 
+                                            inputMode="numeric"
+                                            placeholder="CEP" 
+                                            maxLength={9}
+                                            value={addressForm.zipCode}
+                                            onChange={e => handleCepChange(e.target.value)}
+                                            className={getInputClass(!!errors.zipCode)}
+                                        />
+                                        {isFetchingCep && <div className="absolute right-4 top-1/2 -translate-y-1/2"><Loader2 size={16} className="animate-spin text-[#B8860B]"/></div>}
+                                    </div>
+                                    {errors.zipCode && <ErrorMsg msg={errors.zipCode} />}
                                 </div>
                                 
-                                <div className="flex flex-col md:flex-row gap-4">
-                                    <div className={`${inputWrapperClass} flex-[3]`}>
-                                        <Map className={inputIconClass} size={16}/>
+                                <div>
+                                    <div className={inputWrapperClass}>
+                                        <Map className={`${inputIconClass} ${errors.street ? 'text-red-400' : 'text-gray-400 group-focus-within:text-[#B8860B]'}`} size={16}/>
                                         <input 
                                             type="text" 
                                             placeholder="Rua / Logradouro" 
                                             value={addressForm.street}
-                                            onChange={e => setAddressForm({...addressForm, street: e.target.value})}
-                                            className={inputFieldClass}
-                                            required
+                                            onChange={e => handleInputChange('street', e.target.value)}
+                                            className={getInputClass(!!errors.street)}
                                         />
                                     </div>
-                                    <div className={`${inputWrapperClass} flex-1`}>
-                                        <Hash className={inputIconClass} size={16}/>
+                                    {errors.street && <ErrorMsg msg={errors.street} />}
+                                </div>
+
+                                <div>
+                                    <div className={inputWrapperClass}>
+                                        <Hash className={`${inputIconClass} ${errors.number ? 'text-red-400' : 'text-gray-400 group-focus-within:text-[#B8860B]'}`} size={16}/>
                                         <input 
                                             type="text" 
                                             placeholder="Nº" 
                                             value={addressForm.number}
-                                            onChange={e => setAddressForm({...addressForm, number: e.target.value})}
-                                            className={inputFieldClass}
-                                            required
+                                            onChange={e => handleInputChange('number', e.target.value)}
+                                            className={getInputClass(!!errors.number)}
+                                        />
+                                    </div>
+                                    {errors.number && <ErrorMsg msg={errors.number} />}
+                                </div>
+
+                                <div>
+                                    <div className={inputWrapperClass}>
+                                        <Building className={inputIconClass} size={16}/>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Complemento (Apto, Bloco, etc) - Opcional" 
+                                            value={addressForm.complement}
+                                            onChange={e => handleInputChange('complement', e.target.value)}
+                                            className={getInputClass(false)} // Opcional
                                         />
                                     </div>
                                 </div>
 
-                                <div className={inputWrapperClass}>
-                                    <Building className={inputIconClass} size={16}/>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Complemento (Apto, Bloco, etc) - Opcional" 
-                                        value={addressForm.complement}
-                                        onChange={e => setAddressForm({...addressForm, complement: e.target.value})}
-                                        className={inputFieldClass}
-                                    />
+                                <div>
+                                    <div className={inputWrapperClass}>
+                                        <Navigation className={`${inputIconClass} ${errors.neighborhood ? 'text-red-400' : 'text-gray-400 group-focus-within:text-[#B8860B]'}`} size={16}/>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Bairro" 
+                                            value={addressForm.neighborhood}
+                                            onChange={e => handleInputChange('neighborhood', e.target.value)}
+                                            className={getInputClass(!!errors.neighborhood)}
+                                        />
+                                    </div>
+                                    {errors.neighborhood && <ErrorMsg msg={errors.neighborhood} />}
                                 </div>
 
-                                <div className={inputWrapperClass}>
-                                    <Navigation className={inputIconClass} size={16}/>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Bairro" 
-                                        value={addressForm.neighborhood}
-                                        onChange={e => setAddressForm({...addressForm, neighborhood: e.target.value})}
-                                        className={inputFieldClass}
-                                        required
-                                    />
-                                </div>
-
-                                <div className="flex flex-col md:flex-row gap-4">
-                                    <div className={`${inputWrapperClass} flex-[3]`}>
-                                        <MapPin className={inputIconClass} size={16}/>
+                                <div>
+                                    <div className={inputWrapperClass}>
+                                        <MapPin className={`${inputIconClass} ${errors.city ? 'text-red-400' : 'text-gray-400 group-focus-within:text-[#B8860B]'}`} size={16}/>
                                         <input 
                                             type="text" 
                                             placeholder="Cidade" 
                                             value={addressForm.city}
-                                            onChange={e => setAddressForm({...addressForm, city: e.target.value})}
-                                            className={inputFieldClass}
-                                            required
+                                            onChange={e => handleInputChange('city', e.target.value)}
+                                            className={getInputClass(!!errors.city)}
                                         />
                                     </div>
-                                    <div className={`${inputWrapperClass} flex-1`}>
-                                        <Map className={inputIconClass} size={16}/>
+                                    {errors.city && <ErrorMsg msg={errors.city} />}
+                                </div>
+
+                                <div>
+                                    <div className={inputWrapperClass}>
+                                        <Map className={`${inputIconClass} ${errors.state ? 'text-red-400' : 'text-gray-400 group-focus-within:text-[#B8860B]'}`} size={16}/>
                                         <input 
                                             type="text" 
                                             placeholder="UF" 
                                             value={addressForm.state}
-                                            onChange={e => setAddressForm({...addressForm, state: e.target.value})}
-                                            className={inputFieldClass}
-                                            required
+                                            onChange={e => handleInputChange('state', e.target.value)}
+                                            className={getInputClass(!!errors.state)}
                                         />
                                     </div>
+                                    {errors.state && <ErrorMsg msg={errors.state} />}
                                 </div>
 
                                 <button 
                                     type="submit"
-                                    disabled={!addressForm.street || isSaving}
+                                    disabled={isSaving}
                                     className="w-full h-12 mt-4 bg-[#1d1d1f] text-white text-xs font-bold uppercase tracking-[0.2em] rounded-xl hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-xl"
                                 >
                                     {isSaving ? <Loader2 size={16} className="animate-spin"/> : <><Save size={16}/> {editingId ? 'Atualizar Endereço' : 'Salvar Endereço'}</>}

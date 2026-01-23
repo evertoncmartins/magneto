@@ -43,6 +43,9 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [showPolicyModal, setShowPolicyModal] = useState(false);
     
+    // Confirmação de Limpeza
+    const [isClearCartModalOpen, setIsClearCartModalOpen] = useState(false);
+    
     // Verifica se o endereço foi confirmado nesta sessão através do state da navegação
     const isAddressConfirmed = location.state?.addressConfirmed;
     
@@ -137,6 +140,11 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
         if (window.confirm('Deseja remover este kit completo do carrinho?')) {
             onRemoveBatch(kit.map(i => i.id));
         }
+    };
+
+    const handleConfirmClearCart = () => {
+        onClear();
+        setIsClearCartModalOpen(false);
     };
 
     // Helper centralizado para selecionar cliente e auto-definir endereço
@@ -374,7 +382,10 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
                             <span className="text-[#B8860B] font-bold text-[10px] uppercase tracking-[0.3em] mb-1 block">Checkout</span>
                             <h1 className="text-3xl font-serif font-bold text-[#1d1d1f]">Seu Pedido</h1>
                         </div>
-                        <button onClick={onClear} className="px-4 py-2 text-[10px] font-bold text-red-400 uppercase tracking-widest hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2">
+                        <button 
+                            onClick={() => setIsClearCartModalOpen(true)}
+                            className="px-4 py-2 text-[10px] font-bold text-red-400 uppercase tracking-widest hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2"
+                        >
                             <Trash2 size={14}/> Limpar
                         </button>
                     </div>
@@ -779,6 +790,36 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
                                 <Save size={16}/> Salvar Endereço
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Clear Cart Confirmation Modal */}
+            {isClearCartModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsClearCartModalOpen(false)}></div>
+                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-8 text-center z-10">
+                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Trash2 size={32} />
+                        </div>
+                        <h3 className="font-serif font-bold text-2xl text-[#1d1d1f] mb-2">Esvaziar Sacola?</h3>
+                        <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+                            Tem certeza? Isso removerá <strong>todos os kits</strong> e itens selecionados. Esta ação não pode ser desfeita.
+                        </p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setIsClearCartModalOpen(false)}
+                                className="flex-1 py-4 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={handleConfirmClearCart}
+                                className="flex-1 py-4 bg-red-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all shadow-lg shadow-red-200"
+                            >
+                                Sim, Esvaziar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
