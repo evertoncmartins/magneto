@@ -100,6 +100,7 @@ export interface Order {
   subtotal?: number;
   shippingCost?: number;
   discount?: number;
+  couponCode?: string; // Código do cupom utilizado
   itemsCount: number;
   date: string;
   items?: MagnetItem[];

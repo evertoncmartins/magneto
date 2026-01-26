@@ -1,8 +1,8 @@
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { User, Order, Review, MagnetItem } from '../types';
 import { getUserOrders, getReviewByOrderId, submitReview, updateReview, getPricingRules } from '../services/mockService';
-import { Package, Clock, ChevronDown, Calendar, MapPin, CheckCircle, ShoppingBag, Truck, Loader2, X, Star, ImageIcon, Edit3, CornerUpLeft, Box, XCircle, AlertCircle, Layers, ZoomIn, Wallet, Receipt, MessageCircle, Camera, Shield, ChevronLeft, ChevronRight, Ban, AlertOctagon } from 'lucide-react';
+import { Package, Clock, ChevronDown, Calendar, MapPin, CheckCircle, ShoppingBag, Truck, Loader2, X, Star, ImageIcon, Edit3, CornerUpLeft, Box, XCircle, AlertCircle, Layers, ZoomIn, Wallet, Receipt, MessageCircle, Camera, Shield, ChevronLeft, ChevronRight, Ban, AlertOctagon, Filter, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 // @ts-ignore
 import heic2any from 'heic2any';
@@ -22,6 +22,11 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
+  // Filter & Pagination State
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   // Lightbox State (Advanced)
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -37,10 +42,17 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
 
   useEffect(() => {
     getUserOrders(user.id).then(data => {
-      setOrders(data);
+      // Ordenar por data decrescente (mais recente primeiro)
+      const sorted = [...data].sort((a, b) => {
+          const dateA = a.date.split('/').reverse().join('-');
+          const dateB = b.date.split('/').reverse().join('-');
+          return dateB.localeCompare(dateA);
+      });
+      setOrders(sorted);
+      
       // Fetch reviews for orders
       const revs: Record<string, Review> = {};
-      data.forEach(o => {
+      sorted.forEach(o => {
           const r = getReviewByOrderId(o.id);
           if (r) revs[o.id] = r;
       });
@@ -48,6 +60,38 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
       setLoading(false);
     });
   }, [user.id]);
+
+  // Reset pagination when filter changes
+  useEffect(() => {
+      setCurrentPage(1);
+  }, [selectedYear, itemsPerPage]);
+
+  // --- FILTER LOGIC ---
+  const availableYears = useMemo(() => {
+      const currentYear = new Date().getFullYear();
+      const startYear = user.joinedAt ? parseInt(user.joinedAt.split('/')[2]) : currentYear;
+      const years = [];
+      for (let y = currentYear; y >= startYear; y--) {
+          years.push(y);
+      }
+      return years;
+  }, [user.joinedAt]);
+
+  const filteredOrders = useMemo(() => {
+      if (selectedYear === 'all') return orders;
+      return orders.filter(order => {
+          const orderYear = order.date.split('/')[2];
+          return orderYear === selectedYear;
+      });
+  }, [orders, selectedYear]);
+
+  // --- PAGINATION LOGIC ---
+  const indexOfLastOrder = currentPage * itemsPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - itemsPerPage;
+  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const toggleOrder = (id: string) => {
       setExpandedOrderId(expandedOrderId === id ? null : id);
@@ -243,14 +287,35 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
   return (
     <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-4 md:px-6">
       <div className="max-w-[1000px] mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
+        
+        {/* HEADER AREA */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
           <div>
              <span className="text-[#B8860B] font-bold text-[10px] uppercase tracking-[0.3em] mb-3 block">Central do Cliente</span>
              <h1 className="text-4xl font-serif font-bold text-[#1d1d1f] tracking-tight">Meus Pedidos</h1>
           </div>
-          <Link to="/studio" className="px-8 py-3 bg-[#1d1d1f] text-white text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all rounded-md shadow-xl flex items-center gap-3 active:scale-95">
-              <ShoppingBag size={14} /> Novo Pedido
-          </Link>
+          
+          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+              {/* Year Filter */}
+              <div className="relative group">
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-[#B8860B] transition-colors" size={16} />
+                  <select 
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(e.target.value)}
+                      className="w-full sm:w-auto h-12 pl-10 pr-8 bg-white border border-gray-200 rounded-md text-xs font-bold uppercase tracking-widest text-[#1d1d1f] outline-none focus:border-[#B8860B] cursor-pointer appearance-none shadow-sm hover:bg-gray-50 transition-colors"
+                  >
+                      <option value="all">Todos os anos</option>
+                      {availableYears.map(year => (
+                          <option key={year} value={year}>{year}</option>
+                      ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+
+              <Link to="/studio" className="px-8 py-3 bg-[#1d1d1f] text-white text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all rounded-md shadow-xl flex items-center justify-center gap-3 active:scale-95 whitespace-nowrap">
+                  <ShoppingBag size={14} /> Novo Pedido
+              </Link>
+          </div>
         </div>
 
         {loading ? (
@@ -258,20 +323,24 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
               <Loader2 className="animate-spin text-[#B8860B] mb-4" size={32} />
               <p className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest">Carregando histórico...</p>
           </div>
-        ) : orders.length === 0 ? (
+        ) : filteredOrders.length === 0 ? (
           <div className="bg-white rounded-md p-16 text-center shadow-sm border border-gray-100">
              <div className="w-16 h-16 bg-[#F5F5F7] rounded-md flex items-center justify-center mx-auto mb-8 text-[#86868b]">
                  <Package size={28} />
              </div>
              <h3 className="text-xl font-serif text-[#1d1d1f] mb-3">Nenhum pedido encontrado</h3>
-             <p className="text-[#86868b] mb-10 max-w-sm mx-auto font-light">Sua galeria de memórias está esperando. Transforme seus registros em presença física hoje mesmo.</p>
-             <Link to="/studio" className="text-[#B8860B] text-xs font-bold uppercase tracking-widest hover:underline transition-all">
-                 Acessar Studio Magneto &rarr;
-             </Link>
+             <p className="text-[#86868b] mb-10 max-w-sm mx-auto font-light">
+                 {selectedYear !== 'all' ? `Você não tem pedidos registrados em ${selectedYear}.` : "Sua galeria de memórias está esperando. Transforme seus registros em presença física hoje mesmo."}
+             </p>
+             {selectedYear === 'all' && (
+                 <Link to="/studio" className="text-[#B8860B] text-xs font-bold uppercase tracking-widest hover:underline transition-all">
+                     Acessar Studio Magneto &rarr;
+                 </Link>
+             )}
           </div>
         ) : (
           <div className="space-y-6">
-             {orders.map((order) => {
+             {currentOrders.map((order) => {
                const status = getStatusConfig(order.status);
                const isExpanded = expandedOrderId === order.id;
                const review = reviews[order.id];
@@ -606,8 +675,15 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                                     <span className="font-medium text-[#1d1d1f]">{order.shippingCost ? `R$ ${order.shippingCost.toFixed(2)}` : 'Grátis'}</span>
                                                 </div>
                                                 {order.discount && order.discount > 0 ? (
-                                                    <div className="flex justify-between text-sm text-emerald-600 font-bold">
-                                                        <span>Desconto</span>
+                                                    <div className="flex justify-between text-sm text-emerald-600 font-bold items-center">
+                                                        <span className="flex items-center gap-2">
+                                                            Desconto
+                                                            {order.couponCode && (
+                                                                <span className="bg-gray-100 text-gray-500 text-[9px] px-2 py-0.5 rounded border border-gray-200 uppercase tracking-wider font-bold">
+                                                                    {order.couponCode}
+                                                                </span>
+                                                            )}
+                                                        </span>
                                                         <span>- R$ {order.discount.toFixed(2)}</span>
                                                     </div>
                                                 ) : null}
@@ -639,6 +715,74 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
              })}
           </div>
         )}
+
+        {/* PAGINATION FOOTER */}
+        {filteredOrders.length > 0 && (
+            <div className="flex flex-col sm:flex-row justify-end items-center gap-4 sm:gap-6 pt-10 text-[11px] text-gray-500 font-medium select-none animate-fade-in">
+                
+                <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto justify-between sm:justify-start">
+                    {/* Items Per Page */}
+                    <div className="flex items-center gap-2">
+                        <span className="hidden sm:inline">Itens por página:</span>
+                        <span className="sm:hidden">Exibir:</span>
+                        <div className="relative group">
+                            <select 
+                                value={itemsPerPage}
+                                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                                className="appearance-none bg-transparent hover:bg-white rounded px-2 py-1 pr-6 cursor-pointer focus:outline-none transition-colors text-[#1d1d1f]"
+                            >
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                            </select>
+                            <ChevronDown size={10} className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none opacity-50 group-hover:opacity-100" />
+                        </div>
+                    </div>
+
+                    {/* Range Info */}
+                    <span className="text-[#1d1d1f]">
+                        {indexOfFirstOrder + 1}-{Math.min(indexOfLastOrder, filteredOrders.length)} de {filteredOrders.length}
+                    </span>
+                </div>
+
+                {/* Navigation Icons */}
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-center bg-white p-1.5 sm:p-0 rounded-xl sm:rounded-none border sm:border-none border-gray-100 sm:bg-transparent">
+                    <button 
+                        onClick={() => paginate(1)}
+                        disabled={currentPage === 1}
+                        className="p-2 sm:p-1.5 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f]"
+                        title="Primeira Página"
+                    >
+                        <ChevronsLeft size={16} strokeWidth={1.5} />
+                    </button>
+                    <button 
+                        onClick={() => paginate(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="p-2 sm:p-1.5 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f]"
+                        title="Página Anterior"
+                    >
+                        <ChevronLeft size={16} strokeWidth={1.5} />
+                    </button>
+                    <button 
+                        onClick={() => paginate(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="p-2 sm:p-1.5 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f]"
+                        title="Próxima Página"
+                    >
+                        <ChevronRight size={16} strokeWidth={1.5} />
+                    </button>
+                    <button 
+                        onClick={() => paginate(totalPages)}
+                        disabled={currentPage === totalPages}
+                        className="p-2 sm:p-1.5 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f]"
+                        title="Última Página"
+                    >
+                        <ChevronsRight size={16} strokeWidth={1.5} />
+                    </button>
+                </div>
+            </div>
+        )}
+
       </div>
 
       {/* LIGHTBOX OVERLAY */}

@@ -545,6 +545,7 @@ const INITIAL_ORDERS: Order[] = [
       subtotal: 80.00,
       shippingCost: 15.90,
       discount: 10.90, 
+      couponCode: 'MAGNETO10',
       itemsCount: 25, 
       date: '20/10/2023', 
       items: [],
@@ -646,7 +647,8 @@ export const createOrder = (
     total: number, 
     shippingData: any, 
     socialSharingConsent?: boolean,
-    createdByAdmin?: boolean
+    createdByAdmin?: boolean,
+    couponCode?: string // Novo parâmetro
 ): Promise<Order> => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -664,6 +666,7 @@ export const createOrder = (
         subtotal: subtotal,
         shippingCost: shippingCost,
         discount: discount,
+        couponCode: couponCode, // Salva o cupom
         itemsCount: items.length,
         date: new Date().toLocaleDateString('pt-BR'),
         items: [...items],

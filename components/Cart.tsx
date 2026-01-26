@@ -7,7 +7,7 @@ import {
     ImageIcon, Truck, CreditCard, ChevronDown, Shield, UserCheck, Search, Crown, Layers,
     Lock, Wallet, Home, Sparkles, Camera, Save, Map
 } from 'lucide-react';
-import { calculateUnitPrice, validateCoupon, createOrder, updateUser, getUsers, getPricingRules } from '../services/mockService';
+import { calculateUnitPrice, validateCoupon, createOrder, updateUser, getUsers, getPricingRules, getUserOrders } from '../services/mockService';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import CheckoutSteps from './CheckoutSteps';
 
@@ -273,12 +273,26 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
         try {
             const targetUser = selectedClient || user;
             const derivedConsent = items.length > 0 ? !!items[0].socialConsent : true;
+            
+            // Passa o código do cupom se existir
+            const appliedCouponCode = appliedCoupon ? appliedCoupon.code : undefined;
 
-            await createOrder(targetUser, items, total, addressToUse, derivedConsent, !!user.isAdmin);
+            const newOrder = await createOrder(
+                targetUser, 
+                items, 
+                total, 
+                addressToUse, 
+                derivedConsent, 
+                !!user.isAdmin,
+                appliedCouponCode
+            );
+            
             onClear();
+            
             if (user.isAdmin) {
                 if (onClearAdminMode) onClearAdminMode();
-                navigate('/admin');
+                // Redireciona para o painel admin já filtrando o pedido criado
+                navigate('/admin', { state: { searchOrderId: newOrder.id } });
             } else {
                 navigate('/my-orders');
             }
@@ -351,7 +365,7 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
                     Suas memórias estão esperando para ganhar vida. Que tal começar a selecionar suas fotos favoritas?
                 </p>
                 <Link to="/studio" className="px-12 py-5 bg-[#1d1d1f] text-white rounded-xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl animate-fade-in delay-300 active:scale-95">
-                    Criar meu primeiro kit
+                    Criar Meu Kit
                 </Link>
             </div>
         );

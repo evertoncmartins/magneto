@@ -775,7 +775,19 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                     <div className="space-y-3 text-sm">
                                                         <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>R$ {order.subtotal?.toFixed(2)}</span></div>
                                                         <div className="flex justify-between text-gray-500"><span>Frete</span><span>R$ {order.shippingCost?.toFixed(2)}</span></div>
-                                                        {order.discount ? (<div className="flex justify-between text-emerald-600 font-bold"><span>Desconto</span><span>- R$ {order.discount.toFixed(2)}</span></div>) : null}
+                                                        {order.discount && order.discount > 0 ? (
+                                                            <div className="flex justify-between text-emerald-600 font-bold items-center">
+                                                                <span className="flex items-center gap-2">
+                                                                    Desconto
+                                                                    {order.couponCode && (
+                                                                        <span className="bg-gray-100 text-gray-500 text-[9px] px-2 py-0.5 rounded border border-gray-200 uppercase tracking-wider font-bold">
+                                                                            {order.couponCode}
+                                                                        </span>
+                                                                    )}
+                                                                </span>
+                                                                <span>- R$ {order.discount.toFixed(2)}</span>
+                                                            </div>
+                                                        ) : null}
                                                         <div className="pt-3 border-t border-gray-100 flex justify-between font-bold text-[#1d1d1f] text-lg"><span>Total</span><span>R$ {order.total.toFixed(2)}</span></div>
                                                     </div>
                                                 </div>
