@@ -5,7 +5,7 @@ import {
     Package, Clock, Box, Truck, CheckCircle, ChevronDown, 
     Loader2, Download, MapPin, Receipt, Search, X, ChevronLeft, ChevronRight, ZoomIn, Calendar, Layers,
     Camera, Shield, Trash2, Edit3, UserCheck, RefreshCw, Wand2, ToggleRight, ToggleLeft, List, Home, Plus, ShieldCheck,
-    ChevronsLeft, ChevronsRight, Ban, AlertOctagon, XCircle, RotateCcw, Check, Save, FileText, DollarSign, Activity, Globe, MousePointer
+    ChevronsLeft, ChevronsRight, Ban, AlertOctagon, XCircle, RotateCcw, Check, Save, FileText, DollarSign, Activity
 } from 'lucide-react';
 import { Order, MagnetItem, User, Address } from '../../types';
 import { updateOrderStatus, softDeleteOrder, restoreOrder, updateOrderDetails, getUsers } from '../../services/mockService';
@@ -83,7 +83,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState<Order | null>(null);
     const [activeTab, setActiveTab] = useState<'summary' | 'production' | 'logistics' | 'financial' | 'consent'>('summary');
-    const [trackingCode, setTrackingCode] = useState('');
     const [allUsers, setAllUsers] = useState<User[]>([]);
     
     // Cancel Modal State
@@ -141,7 +140,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
             
             // Reset tab
             setActiveTab('summary');
-            setTrackingCode(''); // Reset tracking code logic
         }
     }, [isEditModalOpen, editingOrder?.id]);
 
@@ -262,11 +260,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
         // 3. Items Check (e.g. Consent)
         if (JSON.stringify(editingOrder.items) !== JSON.stringify(originalOrder.items)) return true;
         
-        // 4. Tracking Code Check (Simulated field)
-        if (trackingCode !== '') return true; 
-
         return false;
-    }, [editingOrder, originalOrder, editAddressForm, trackingCode]);
+    }, [editingOrder, originalOrder, editAddressForm]);
 
     const handleFillAddress = (addressId: string) => {
         setActiveAddressCardId(addressId);
@@ -424,11 +419,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 shippingAddress: editAddressForm // Save the updated address
             };
             
-            // Simula atualização de tracking (muda status para shipped)
-            if (trackingCode) {
-                updates.status = 'shipped';
-            }
-
             updateOrderDetails(editingOrder.id, updates);
             refreshData();
             setIsEditModalOpen(false);
@@ -1162,24 +1152,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                 <input value={editAddressForm.state} onChange={e => setEditAddressForm(prev => ({...prev, state: e.target.value}))} placeholder="UF" maxLength={2} className={`${inputClasses} text-center uppercase`} />
                                             </div>
                                         </div>
-                                    </div>
-
-                                    {/* Tracking Info */}
-                                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                                        <h4 className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-4 flex items-center gap-2"><Globe size={14} className="text-[#B8860B]"/> Rastreamento</h4>
-                                        <div className="flex gap-3">
-                                            <input 
-                                                type="text" 
-                                                placeholder="Código de Rastreio (Ex: BR123456789BR)" 
-                                                value={trackingCode}
-                                                onChange={(e) => setTrackingCode(e.target.value.toUpperCase())}
-                                                className="flex-1 h-12 px-4 bg-[#F9F9FA] rounded-xl border border-transparent focus:bg-white focus:border-[#B8860B] outline-none transition-all uppercase font-mono tracking-widest placeholder:normal-case placeholder:font-sans placeholder:tracking-normal"
-                                            />
-                                            <button onClick={() => window.open(`https://rastreamento.correios.com.br/app/index.php?objeto=${trackingCode}`, '_blank')} disabled={!trackingCode} className="px-4 bg-[#1d1d1f] text-white rounded-xl hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                                <MousePointer size={18} />
-                                            </button>
-                                        </div>
-                                        <p className="text-[9px] text-gray-400 mt-2 ml-1">*Ao salvar com código preenchido, o status mudará para "Enviado".</p>
                                     </div>
                                 </div>
                             )}
