@@ -198,6 +198,9 @@ const PricingCard: React.FC<{
 };
 
 const AdminPricing: React.FC<AdminPricingProps> = ({ localRules, setLocalRules }) => {
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [tierToDelete, setTierToDelete] = useState<string | null>(null);
+
     const handleUpdateTier = (updatedTier: ProductTier) => {
         const newTiers = localRules.map(t => t.id === updatedTier.id ? updatedTier : t);
         setLocalRules(newTiers);
@@ -224,44 +227,84 @@ const AdminPricing: React.FC<AdminPricingProps> = ({ localRules, setLocalRules }
         setLocalRules([...localRules, newTier]);
     };
   
-    const handleRemoveTier = (id: string) => {
+    const handleRequestDelete = (id: string) => {
         if (localRules.length <= 1) {
             alert("É necessário ter pelo menos 1 kit ativo.");
             return;
         }
-        if (window.confirm("Tem certeza que deseja remover este kit?")) {
-            setLocalRules(localRules.filter(t => t.id !== id));
+        setTierToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (tierToDelete) {
+            setLocalRules(localRules.filter(t => t.id !== tierToDelete));
+            setIsDeleteModalOpen(false);
+            setTierToDelete(null);
         }
     };
 
     return (
-        <div className="animate-fade-in pb-20">
-            {/* Header removido daqui pois agora é global no Dashboard */}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-                {localRules.map(tier => (
-                    <PricingCard 
-                        key={tier.id}
-                        tier={tier}
-                        onUpdate={handleUpdateTier}
-                        onDelete={() => handleRemoveTier(tier.id)}
-                        onToggleRec={() => handleToggleRecommended(tier.id)}
-                    />
-                ))}
+        <>
+            <div className="animate-fade-in pb-20">
+                {/* Header removido daqui pois agora é global no Dashboard */}
                 
-                {localRules.length < 4 && (
-                    <button 
-                        onClick={handleAddTier} 
-                        className="border-2 border-dashed border-gray-200 rounded-[20px] flex flex-col items-center justify-center text-gray-400 hover:border-[#B8860B] hover:text-[#B8860B] hover:bg-white transition-all bg-gray-50/50 min-h-[350px] md:min-h-[500px] group gap-4"
-                    >
-                        <div className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform text-gray-300 group-hover:text-[#B8860B]">
-                            <Plus size={28}/>
-                        </div>
-                        <span className="font-bold text-xs uppercase tracking-[0.2em]">Adicionar Novo Kit</span>
-                    </button>
-                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+                    {localRules.map(tier => (
+                        <PricingCard 
+                            key={tier.id}
+                            tier={tier}
+                            onUpdate={handleUpdateTier}
+                            onDelete={() => handleRequestDelete(tier.id)}
+                            onToggleRec={() => handleToggleRecommended(tier.id)}
+                        />
+                    ))}
+                    
+                    {localRules.length < 4 && (
+                        <button 
+                            onClick={handleAddTier} 
+                            className="border-2 border-dashed border-gray-200 rounded-[20px] flex flex-col items-center justify-center text-gray-400 hover:border-[#B8860B] hover:text-[#B8860B] hover:bg-white transition-all bg-gray-50/50 min-h-[350px] md:min-h-[500px] group gap-4"
+                        >
+                            <div className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform text-gray-300 group-hover:text-[#B8860B]">
+                                <Plus size={28}/>
+                            </div>
+                            <span className="font-bold text-xs uppercase tracking-[0.2em]">Adicionar Novo Kit</span>
+                        </button>
+                    )}
+                </div>
             </div>
-        </div>
+
+            {/* DELETE CONFIRMATION MODAL - FULL SCREEN ABOVE MENU */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsDeleteModalOpen(false)}></div>
+                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-8 text-center z-10">
+                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Trash2 size={32} />
+                        </div>
+                        <h3 className="font-serif font-bold text-2xl text-[#1d1d1f] mb-2">Excluir Kit?</h3>
+                        <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+                            Tem certeza que deseja remover este kit de preços? <br/>
+                            Esta ação não pode ser desfeita.
+                        </p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                className="flex-1 py-4 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={confirmDelete}
+                                className="flex-1 py-4 bg-red-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all shadow-lg shadow-red-200"
+                            >
+                                Sim, Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
 

@@ -675,16 +675,16 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                                     <span className="font-medium text-[#1d1d1f]">{order.shippingCost ? `R$ ${order.shippingCost.toFixed(2)}` : 'Grátis'}</span>
                                                 </div>
                                                 {order.discount && order.discount > 0 ? (
-                                                    <div className="flex justify-between text-sm text-emerald-600 font-bold items-center">
-                                                        <span className="flex items-center gap-2">
-                                                            Desconto
+                                                    <div className="flex justify-between items-center text-sm text-emerald-600 font-bold">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <span>Desconto</span>
                                                             {order.couponCode && (
                                                                 <span className="bg-gray-100 text-gray-500 text-[9px] px-2 py-0.5 rounded border border-gray-200 uppercase tracking-wider font-bold">
                                                                     {order.couponCode}
                                                                 </span>
                                                             )}
-                                                        </span>
-                                                        <span>- R$ {order.discount.toFixed(2)}</span>
+                                                        </div>
+                                                        <span className="whitespace-nowrap ml-2">- R$ {order.discount.toFixed(2)}</span>
                                                     </div>
                                                 ) : null}
                                                 <div className="h-px bg-gray-100 my-2"></div>

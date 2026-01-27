@@ -490,11 +490,11 @@ const AdminLoginTestimonials: React.FC = () => {
                 </div>
             )}
 
-            {/* MODAL EDIT/CREATE */}
+            {/* MODAL EDIT/CREATE - FULL SCREEN */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011F4B]/30 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
-                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden animate-fade-in border border-gray-100 flex flex-col max-h-[90vh]">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)}></div>
+                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden animate-fade-in border border-gray-100 flex flex-col max-h-[90vh] z-10">
                         <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white">
                             <h3 className="font-serif font-bold text-xl text-[#1d1d1f]">{editingId ? 'Editar Depoimento' : 'Novo Depoimento'}</h3>
                             <button onClick={() => setIsModalOpen(false)}><X size={20} className="text-gray-400 hover:text-red-500"/></button>
