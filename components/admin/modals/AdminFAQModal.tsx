@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, HelpCircle, ToggleRight, ToggleLeft } from 'lucide-react';
+import { X, HelpCircle, ToggleRight, ToggleLeft, Check, Save } from 'lucide-react';
 import { addFAQ, updateFAQ, getFAQCategories } from '../../../services/mockService';
 import { FAQ, FAQCategory } from '../../../types';
 
@@ -25,25 +25,37 @@ const AdminFAQModal: React.FC<AdminFAQModalProps> = ({ isOpen, onClose, refreshD
         isActive: true
     });
 
+    // Estado para rastrear dados iniciais e verificar alterações
+    const [initialFaqData, setInitialFaqData] = useState<{
+        question: string;
+        answer: string;
+        category: string;
+        isActive: boolean;
+    } | null>(null);
+
     useEffect(() => {
         if (isOpen) {
             const loadedCats = getFAQCategories();
             setCategories(loadedCats);
             
             if (editingFAQ) {
-                setFaqData({
+                const data = {
                     question: editingFAQ.question,
                     answer: editingFAQ.answer,
                     category: editingFAQ.category,
                     isActive: editingFAQ.isActive
-                });
+                };
+                setFaqData(data);
+                setInitialFaqData(data);
             } else {
-                setFaqData({ 
+                const data = { 
                     question: '', 
                     answer: '', 
                     category: loadedCats.length > 0 ? loadedCats[0].name : '', 
                     isActive: true 
-                });
+                };
+                setFaqData(data);
+                setInitialFaqData(data);
             }
         }
     }, [isOpen, editingFAQ]);
@@ -61,12 +73,15 @@ const AdminFAQModal: React.FC<AdminFAQModalProps> = ({ isOpen, onClose, refreshD
         onClose();
     };
 
+    // Verifica se houve alterações
+    const isDirty = JSON.stringify(faqData) !== JSON.stringify(initialFaqData);
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-[#011F4B]/30 backdrop-blur-sm" onClick={onClose}></div>
-            <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 max-h-[90vh]">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={onClose}></div>
+            <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 max-h-[90vh] z-10">
                 <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
                     <div>
                         <h3 className="font-serif font-bold text-2xl">{editingFAQ ? 'Editar Pergunta' : 'Nova Pergunta'}</h3>
@@ -126,8 +141,21 @@ const AdminFAQModal: React.FC<AdminFAQModalProps> = ({ isOpen, onClose, refreshD
                 </div>
                 <div className="p-6 border-t border-gray-100 bg-white flex gap-4">
                     <button type="button" onClick={onClose} className="flex-1 py-4 bg-gray-50 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-gray-100 transition-all">Cancelar</button>
-                    <button type="submit" form="faqForm" className="flex-1 py-4 bg-[#1d1d1f] text-white font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-black transition-all shadow-xl">
-                        {editingFAQ ? 'Salvar Alterações' : 'Criar FAQ'}
+                    <button 
+                        type="submit" 
+                        form="faqForm" 
+                        disabled={!!editingFAQ && !isDirty}
+                        className={`flex-1 py-4 font-bold text-[10px] uppercase tracking-widest rounded-lg transition-all shadow-xl flex items-center justify-center gap-2 ${
+                            (!!editingFAQ && !isDirty)
+                            ? 'bg-gray-100 text-gray-400 cursor-default shadow-none' 
+                            : 'bg-[#1d1d1f] text-white hover:bg-black'
+                        }`}
+                    >
+                        {(!!editingFAQ && !isDirty) ? (
+                            <><Check size={16}/> Salvo</>
+                        ) : (
+                            <><Save size={16}/> {editingFAQ ? 'Salvar' : 'Criar FAQ'}</>
+                        )}
                     </button>
                 </div>
             </div>

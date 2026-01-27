@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Plus, CheckCircle, Trash2, Home, Loader2, Search, Navigation, Building, Map, ArrowLeft, Hash, Edit3, Save, AlertCircle } from 'lucide-react';
+import { MapPin, Plus, CheckCircle, Trash2, Home, Loader2, Search, Navigation, Building, Map, ArrowLeft, Hash, Edit3, Save, AlertCircle, Check } from 'lucide-react';
 import { User, Address } from '../types';
 import { updateUser } from '../services/mockService';
 import CheckoutSteps from './CheckoutSteps';
@@ -9,7 +9,7 @@ import CheckoutSteps from './CheckoutSteps';
 const STATE_MAP: Record<string, string> = {
     'AC': 'Acre', 'AL': 'Alagoas', 'AP': 'Amapá', 'AM': 'Amazonas', 'BA': 'Bahia', 'CE': 'Ceará',
     'DF': 'Distrito Federal', 'ES': 'Espírito Santo', 'GO': 'Goiás', 'MA': 'Maranhão', 'MT': 'Mato Grosso',
-    'MS': 'Mato Grosso do Sul', 'MG': 'Minas Gerais', 'PA': 'Pará', 'PB': 'Paraíba', 'PR': 'Paraná',
+    'MS': 'Mato Grosso do Sul', 'MG': 'Minas Gerais', 'PA': 'Paraíba', 'PR': 'Paraná',
     'PE': 'Pernambuco', 'PI': 'Piauí', 'RJ': 'Rio de Janeiro', 'RN': 'Rio Grande do Norte',
     'RS': 'Rio Grande do Sul', 'RO': 'Rondônia', 'RR': 'Roraima', 'SC': 'Santa Catarina',
     'SP': 'São Paulo', 'SE': 'Sergipe', 'TO': 'Tocantins'
@@ -29,6 +29,18 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
     
     // Form State
     const [addressForm, setAddressForm] = useState<Address>({
+        nickname: '',
+        street: '', 
+        number: '', 
+        complement: '', 
+        neighborhood: '', 
+        city: '', 
+        state: '', 
+        zipCode: ''
+    });
+
+    // Initial State for Dirty Check
+    const [initialForm, setInitialForm] = useState<Address>({
         nickname: '',
         street: '', 
         number: '', 
@@ -112,6 +124,7 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
 
     const handleEditAddress = (addr: Address) => {
         setAddressForm(addr);
+        setInitialForm(addr); // Set initial state for comparison
         setEditingId(addr.id || null);
         setErrors({}); // Limpa erros ao abrir edição
         setIsFormOpen(true);
@@ -182,7 +195,9 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
     const resetForm = () => {
         setIsFormOpen(false);
         setEditingId(null);
-        setAddressForm({ nickname: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: '' });
+        const emptyForm = { nickname: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: '' };
+        setAddressForm(emptyForm);
+        setInitialForm(emptyForm);
         setErrors({});
     };
 
@@ -239,6 +254,9 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
             <AlertCircle size={10}/> {msg}
         </p>
     );
+
+    // Verifica se houve alterações no formulário
+    const isDirty = JSON.stringify(addressForm) !== JSON.stringify(initialForm);
 
     if (!user) return null;
 
@@ -451,10 +469,24 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
 
                                 <button 
                                     type="submit"
-                                    disabled={isSaving}
-                                    className="w-full h-12 mt-4 bg-[#1d1d1f] text-white text-xs font-bold uppercase tracking-[0.2em] rounded-xl hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-xl"
+                                    disabled={isSaving || (!!editingId && !isDirty)}
+                                    className={`w-full h-12 mt-4 text-xs font-bold uppercase tracking-[0.2em] rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 
+                                        ${isSaving 
+                                            ? 'bg-[#1d1d1f] text-white' 
+                                            : (!!editingId && !isDirty)
+                                                ? 'bg-gray-100 text-gray-400 cursor-default shadow-none' 
+                                                : 'bg-[#1d1d1f] text-white hover:bg-black hover:shadow-xl active:scale-95'
+                                        }
+                                        disabled:opacity-100
+                                    `}
                                 >
-                                    {isSaving ? <Loader2 size={16} className="animate-spin"/> : <><Save size={16}/> {editingId ? 'Atualizar Endereço' : 'Salvar Endereço'}</>}
+                                    {isSaving ? <Loader2 size={16} className="animate-spin"/> : (
+                                        (!!editingId && !isDirty) ? (
+                                            <><Check size={16}/> Salvo</>
+                                        ) : (
+                                            <><Save size={16}/> {editingId ? 'Salvar' : 'Salvar Endereço'}</>
+                                        )
+                                    )}
                                 </button>
                             </form>
                         </div>

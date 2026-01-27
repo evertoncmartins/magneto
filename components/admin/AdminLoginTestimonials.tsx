@@ -40,6 +40,10 @@ const AdminLoginTestimonials: React.FC = () => {
     const [formData, setFormData] = useState({
         quote: '', author: '', role: '', avatar: '', bgImage: '', rating: 5, isActive: true
     });
+    // Track initial state for dirty checking
+    const [initialFormData, setInitialFormData] = useState({
+        quote: '', author: '', role: '', avatar: '', bgImage: '', rating: 5, isActive: true
+    });
 
     useEffect(() => {
         loadData();
@@ -54,7 +58,7 @@ const AdminLoginTestimonials: React.FC = () => {
     const handleOpenModal = (testimonial?: LoginTestimonial) => {
         if (testimonial) {
             setEditingId(testimonial.id);
-            setFormData({
+            const data = {
                 quote: testimonial.quote,
                 author: testimonial.author,
                 role: testimonial.role,
@@ -62,12 +66,16 @@ const AdminLoginTestimonials: React.FC = () => {
                 bgImage: testimonial.bgImage,
                 rating: testimonial.rating,
                 isActive: testimonial.isActive
-            });
+            };
+            setFormData(data);
+            setInitialFormData(data);
         } else {
             setEditingId(null);
-            setFormData({
+            const data = {
                 quote: '', author: '', role: '', avatar: '', bgImage: 'https://images.unsplash.com/photo-1493863641943-9b68992a8d07?q=80&w=1200', rating: 5, isActive: true
-            });
+            };
+            setFormData(data);
+            setInitialFormData(data);
         }
         setIsModalOpen(true);
     };
@@ -195,300 +203,305 @@ const AdminLoginTestimonials: React.FC = () => {
         });
     }, [siteReviews, testimonials, reviewSearch, dateStart, dateEnd]);
 
-    return (
-        <div className="space-y-6 animate-fade-in">
-            {/* Tabs - Mobile Responsive Wrapper */}
-            <div className="flex justify-center">
-                <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 flex flex-wrap justify-center gap-1 w-full md:w-auto">
-                    <button 
-                        onClick={() => setActiveTab('manage')}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'manage' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
-                    >
-                        <Quote size={14} /> Gerenciar
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('import')}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'import' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
-                    >
-                        <Import size={14} /> Importar
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('settings')}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
-                    >
-                        <Settings size={14} /> Ajustes
-                    </button>
-                </div>
-            </div>
+    // isDirty check for modal
+    const isDirty = JSON.stringify(formData) !== JSON.stringify(initialFormData);
 
-            {/* TAB: MANAGE */}
-            {activeTab === 'manage' && (
-                <div className="space-y-6">
-                    {/* Header - Mobile Column Layout */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                            <h3 className="text-xl font-serif font-bold text-[#1d1d1f]">Depoimentos Ativos</h3>
-                            <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                                {settings.displayMode === 'sequential' 
-                                    ? 'Modo Sequencial: Arraste para definir a ordem.' 
-                                    : 'Modo Aleatório: A ordem é apenas organizacional.'}
-                            </p>
-                        </div>
-                        <button onClick={() => handleOpenModal()} className="w-full md:w-auto bg-[#1d1d1f] text-white px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 shrink-0">
-                            <Plus size={16} /> Adicionar Manualmente
+    return (
+        <>
+            <div className="space-y-6 animate-fade-in">
+                {/* Tabs - Mobile Responsive Wrapper */}
+                <div className="flex justify-center">
+                    <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 flex flex-wrap justify-center gap-1 w-full md:w-auto">
+                        <button 
+                            onClick={() => setActiveTab('manage')}
+                            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'manage' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
+                        >
+                            <Quote size={14} /> Gerenciar
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('import')}
+                            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'import' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
+                        >
+                            <Import size={14} /> Importar
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('settings')}
+                            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-[#1d1d1f] text-white shadow-md' : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'}`}
+                        >
+                            <Settings size={14} /> Ajustes
                         </button>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {testimonials.map((item, index) => (
-                            <div 
-                                key={item.id} 
-                                draggable
-                                onDragStart={() => handleDragStart(index)}
-                                onDragOver={handleDragOver}
-                                onDrop={() => handleDrop(index)}
-                                className={`bg-white rounded-xl border transition-all relative group overflow-hidden cursor-move hover:shadow-md ${item.isActive ? 'border-gray-200 shadow-sm' : 'border-gray-100 opacity-60 grayscale'}`}
-                            >
-                                {/* Drag Handle Hint (Desktop) */}
-                                <div className="hidden md:block absolute top-2 right-2 z-20 text-white/50 bg-black/20 p-1 rounded hover:bg-black/40 transition-colors opacity-0 group-hover:opacity-100">
-                                    <GripVertical size={16} />
-                                </div>
-
-                                {/* Mobile Reorder Buttons */}
-                                <div className="md:hidden absolute top-2 right-2 z-20 flex flex-col gap-1">
-                                    {index > 0 && (
-                                        <button 
-                                            onClick={() => moveTestimonial(index, 'up')}
-                                            className="bg-black/30 text-white p-1.5 rounded backdrop-blur-sm active:bg-black/50"
-                                        >
-                                            <ArrowUp size={14} />
-                                        </button>
-                                    )}
-                                    {index < testimonials.length - 1 && (
-                                        <button 
-                                            onClick={() => moveTestimonial(index, 'down')}
-                                            className="bg-black/30 text-white p-1.5 rounded backdrop-blur-sm active:bg-black/50"
-                                        >
-                                            <ArrowDown size={14} />
-                                        </button>
-                                    )}
-                                </div>
-
-                                {/* Image Preview */}
-                                <div className="h-32 w-full relative">
-                                    <img src={item.bgImage} className="w-full h-full object-cover" alt="Background" />
-                                    <div className="absolute inset-0 bg-black/40"></div>
-                                    <div className="absolute bottom-4 left-4 flex items-center gap-3">
-                                        <img src={item.avatar} className="w-10 h-10 rounded-full border-2 border-white object-cover" alt={item.author} />
-                                        <div className="text-white">
-                                            <p className="text-xs font-bold">{item.author}</p>
-                                            <p className="text-[9px] uppercase tracking-wide opacity-80">{item.role}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="p-5">
-                                    <div className="flex text-[#B8860B] mb-2 gap-0.5">
-                                        {[...Array(5)].map((_, i) => <Star key={i} size={12} fill={i < item.rating ? "currentColor" : "none"} />)}
-                                    </div>
-                                    <p className="text-sm text-gray-600 italic line-clamp-3 mb-4 min-h-[3.75rem]">"{item.quote}"</p>
-                                    
-                                    <div className="flex flex-wrap gap-y-2 justify-between items-center border-t border-gray-50 pt-4">
-                                        <div className="flex gap-1.5">
-                                            {item.source === 'manual' ? (
-                                                <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-gray-100 text-gray-500">
-                                                    Manual
-                                                </span>
-                                            ) : (
-                                                <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-blue-50 text-blue-600">
-                                                    Importada
-                                                </span>
-                                            )}
-                                            {item.isEdited && (
-                                                <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-amber-50 text-amber-600">
-                                                    Editada
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex gap-2">
-                                            {/* Desktop Reorder Buttons (Horizontal) */}
-                                            <div className="hidden md:flex gap-1 mr-2 border-r border-gray-100 pr-2">
-                                                <button onClick={() => moveTestimonial(index, 'up')} disabled={index === 0} className="p-1.5 text-gray-300 hover:text-[#1d1d1f] disabled:opacity-30 transition-colors"><ChevronLeft size={16}/></button>
-                                                <button onClick={() => moveTestimonial(index, 'down')} disabled={index === testimonials.length - 1} className="p-1.5 text-gray-300 hover:text-[#1d1d1f] disabled:opacity-30 transition-colors"><ChevronRight size={16}/></button>
-                                            </div>
-
-                                            <button onClick={() => handleToggleActive(item)} className="p-2 text-gray-400 hover:text-emerald-500 transition-colors" title={item.isActive ? "Desativar" : "Ativar"}>
-                                                {item.isActive ? <ToggleRight size={20} className="text-emerald-500"/> : <ToggleLeft size={20}/>}
-                                            </button>
-                                            <button onClick={() => handleOpenModal(item)} className="p-2 text-gray-400 hover:text-[#B8860B] transition-colors"><Edit3 size={16}/></button>
-                                            <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
                 </div>
-            )}
 
-            {/* TAB: IMPORT */}
-            {activeTab === 'import' && (
-                <div className="space-y-6">
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-                        {/* Search */}
-                        <div className="relative w-full md:flex-1 group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={18} />
-                            <input 
-                                type="text"
-                                placeholder="Buscar por nome do cliente..."
-                                value={reviewSearch}
-                                onChange={(e) => setReviewSearch(e.target.value)}
-                                className="w-full h-12 pl-12 pr-12 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B]/20 transition-all shadow-inner placeholder:text-gray-400"
-                            />
-                            {reviewSearch && (
-                                <button 
-                                    onClick={() => setReviewSearch('')}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-100 rounded-full transition-all"
-                                >
-                                    <X size={16} />
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Date Filter */}
-                        <div className="flex items-center gap-2 w-full md:w-auto bg-[#F5F5F7] p-1.5 rounded-xl border border-transparent">
-                            <div className="flex items-center gap-2 px-3">
-                                <Calendar size={16} className="text-gray-400"/>
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide hidden sm:inline">Período:</span>
+                {/* TAB: MANAGE */}
+                {activeTab === 'manage' && (
+                    <div className="space-y-6">
+                        {/* Header - Mobile Column Layout */}
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <h3 className="text-xl font-serif font-bold text-[#1d1d1f]">Depoimentos Ativos</h3>
+                                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                                    {settings.displayMode === 'sequential' 
+                                        ? 'Modo Sequencial: Arraste para definir a ordem.' 
+                                        : 'Modo Aleatório: A ordem é apenas organizacional.'}
+                                </p>
                             </div>
-                            <input 
-                                type="date" 
-                                value={dateStart}
-                                onChange={(e) => setDateStart(e.target.value)}
-                                className="bg-white border border-gray-200 text-gray-600 text-xs rounded-lg px-2 py-2 outline-none focus:border-[#B8860B] h-9"
-                            />
-                            <span className="text-gray-300">-</span>
-                            <input 
-                                type="date" 
-                                value={dateEnd}
-                                onChange={(e) => setDateEnd(e.target.value)}
-                                className="bg-white border border-gray-200 text-gray-600 text-xs rounded-lg px-2 py-2 outline-none focus:border-[#B8860B] h-9"
-                            />
-                            {(dateStart || dateEnd) && (
-                                <button onClick={() => { setDateStart(''); setDateEnd(''); }} className="p-2 hover:bg-white rounded-lg text-gray-400 hover:text-red-500 transition-colors">
-                                    <X size={14} />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4">
-                        {filteredReviews.length === 0 ? (
-                            <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
-                                <p className="font-medium text-sm">Nenhuma avaliação disponível para importação.</p>
-                                <button onClick={() => { setReviewSearch(''); setDateStart(''); setDateEnd(''); }} className="text-[#B8860B] text-[10px] font-bold uppercase tracking-widest mt-2 hover:underline">
-                                    Limpar filtros
-                                </button>
-                            </div>
-                        ) : (
-                            filteredReviews.map(review => (
-                                <div key={review.id} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-6 items-start md:items-center">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="flex text-[#B8860B] gap-0.5">
-                                                {[...Array(5)].map((_, i) => <Star key={i} size={12} fill={i < review.rating ? "currentColor" : "none"} />)}
-                                            </div>
-                                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{review.createdAt}</span>
-                                        </div>
-                                        <p className="text-sm text-gray-600 italic mb-2">"{review.text}"</p>
-                                        <p className="text-xs font-bold text-[#1d1d1f] flex items-center gap-2">
-                                            {review.userName} 
-                                            {review.userLocation && <span className="font-normal text-gray-400">• {review.userLocation}</span>}
-                                        </p>
-                                    </div>
-                                    <button 
-                                        onClick={() => handlePromoteReview(review)}
-                                        className="bg-[#F5F5F7] text-[#1d1d1f] hover:bg-[#1d1d1f] hover:text-white px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shrink-0 border border-gray-200 hover:border-transparent w-full md:w-auto justify-center"
-                                    >
-                                        <Upload size={14} /> Importar
-                                    </button>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* TAB: SETTINGS */}
-            {activeTab === 'settings' && (
-                <div className="max-w-2xl mx-auto bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="text-xl font-serif font-bold text-[#1d1d1f] mb-6 flex items-center gap-2">
-                        <Settings size={20} className="text-[#B8860B]" /> Configurações de Exibição
-                    </h3>
-                    
-                    <div className="space-y-8">
-                        <div>
-                            <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-3 block">Modo de Rotação</label>
-                            <div className="grid grid-cols-2 gap-4">
-                                <button 
-                                    onClick={() => setSettings({...settings, displayMode: 'random'})}
-                                    className={`p-6 rounded-xl border text-center transition-all ${settings.displayMode === 'random' ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-lg' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-                                >
-                                    <div className="flex justify-center mb-3"><RotateCw size={24} /></div>
-                                    <span className="text-xs font-bold uppercase tracking-widest">Aleatório</span>
-                                    <p className="text-[10px] mt-2 opacity-70">Exibe um depoimento diferente a cada atualização da página.</p>
-                                </button>
-                                <button 
-                                    onClick={() => setSettings({...settings, displayMode: 'sequential'})}
-                                    className={`p-6 rounded-xl border text-center transition-all ${settings.displayMode === 'sequential' ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-lg' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-                                >
-                                    <div className="flex justify-center mb-3"><CheckCircle size={24} /></div>
-                                    <span className="text-xs font-bold uppercase tracking-widest">Sequencial</span>
-                                    <p className="text-[10px] mt-2 opacity-70">Segue a ordem manual definida na aba Gerenciar.</p>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-3 block">Limite de Rotação</label>
-                            <div className="flex items-center gap-4 bg-[#F5F5F7] p-4 rounded-xl">
-                                <input 
-                                    type="range" 
-                                    min="1" 
-                                    max="20" 
-                                    value={settings.maxItems} 
-                                    onChange={(e) => setSettings({...settings, maxItems: parseInt(e.target.value)})}
-                                    className="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-[#1d1d1f]"
-                                />
-                                <span className="bg-white px-4 py-2 rounded-lg font-bold text-[#1d1d1f] shadow-sm w-16 text-center">{settings.maxItems}</span>
-                            </div>
-                            <p className="text-[10px] text-gray-400 mt-2">Define quantos depoimentos ativos serão considerados no ciclo de rotação (respeitando a ordem).</p>
-                        </div>
-
-                        <div className="pt-6 border-t border-gray-100 flex justify-end">
-                            <button 
-                                onClick={handleSaveSettings}
-                                disabled={isSaved} 
-                                className={`px-8 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg flex items-center gap-2 ${
-                                    isSaved 
-                                    ? 'bg-emerald-500 text-white cursor-default' 
-                                    : 'bg-[#B8860B] text-white hover:bg-[#966d09]'
-                                }`}
-                            >
-                                {isSaved ? (
-                                    <>
-                                        <Check size={16} /> Salvo
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save size={16} /> Salvar Configurações
-                                    </>
-                                )}
+                            <button onClick={() => handleOpenModal()} className="w-full md:w-auto bg-[#1d1d1f] text-white px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 shrink-0">
+                                <Plus size={16} /> Adicionar Manualmente
                             </button>
                         </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                            {testimonials.map((item, index) => (
+                                <div 
+                                    key={item.id} 
+                                    draggable
+                                    onDragStart={() => handleDragStart(index)}
+                                    onDragOver={handleDragOver}
+                                    onDrop={() => handleDrop(index)}
+                                    className={`bg-white rounded-xl border transition-all relative group overflow-hidden cursor-move hover:shadow-md ${item.isActive ? 'border-gray-200 shadow-sm' : 'border-gray-100 opacity-60 grayscale'}`}
+                                >
+                                    {/* Drag Handle Hint (Desktop) */}
+                                    <div className="hidden md:block absolute top-2 right-2 z-20 text-white/50 bg-black/20 p-1 rounded hover:bg-black/40 transition-colors opacity-0 group-hover:opacity-100">
+                                        <GripVertical size={16} />
+                                    </div>
+
+                                    {/* Mobile Reorder Buttons */}
+                                    <div className="md:hidden absolute top-2 right-2 z-20 flex flex-col gap-1">
+                                        {index > 0 && (
+                                            <button 
+                                                onClick={() => moveTestimonial(index, 'up')}
+                                                className="bg-black/30 text-white p-1.5 rounded backdrop-blur-sm active:bg-black/50"
+                                            >
+                                                <ArrowUp size={14} />
+                                            </button>
+                                        )}
+                                        {index < testimonials.length - 1 && (
+                                            <button 
+                                                onClick={() => moveTestimonial(index, 'down')}
+                                                className="bg-black/30 text-white p-1.5 rounded backdrop-blur-sm active:bg-black/50"
+                                            >
+                                                <ArrowDown size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Image Preview */}
+                                    <div className="h-32 w-full relative">
+                                        <img src={item.bgImage} className="w-full h-full object-cover" alt="Background" />
+                                        <div className="absolute inset-0 bg-black/40"></div>
+                                        <div className="absolute bottom-4 left-4 flex items-center gap-3">
+                                            <img src={item.avatar} className="w-10 h-10 rounded-full border-2 border-white object-cover" alt={item.author} />
+                                            <div className="text-white">
+                                                <p className="text-xs font-bold">{item.author}</p>
+                                                <p className="text-[9px] uppercase tracking-wide opacity-80">{item.role}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="p-5">
+                                        <div className="flex text-[#B8860B] mb-2 gap-0.5">
+                                            {[...Array(5)].map((_, i) => <Star key={i} size={12} fill={i < item.rating ? "currentColor" : "none"} />)}
+                                        </div>
+                                        <p className="text-sm text-gray-600 italic line-clamp-3 mb-4 min-h-[3.75rem]">"{item.quote}"</p>
+                                        
+                                        <div className="flex flex-wrap gap-y-2 justify-between items-center border-t border-gray-50 pt-4">
+                                            <div className="flex gap-1.5">
+                                                {item.source === 'manual' ? (
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-gray-100 text-gray-500">
+                                                        Manual
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-blue-50 text-blue-600">
+                                                        Importada
+                                                    </span>
+                                                )}
+                                                {item.isEdited && (
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-amber-50 text-amber-600">
+                                                        Editada
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {/* Desktop Reorder Buttons (Horizontal) */}
+                                                <div className="hidden md:flex gap-1 mr-2 border-r border-gray-100 pr-2">
+                                                    <button onClick={() => moveTestimonial(index, 'up')} disabled={index === 0} className="p-1.5 text-gray-300 hover:text-[#1d1d1f] disabled:opacity-30 transition-colors"><ChevronLeft size={16}/></button>
+                                                    <button onClick={() => moveTestimonial(index, 'down')} disabled={index === testimonials.length - 1} className="p-1.5 text-gray-300 hover:text-[#1d1d1f] disabled:opacity-30 transition-colors"><ChevronRight size={16}/></button>
+                                                </div>
+
+                                                <button onClick={() => handleToggleActive(item)} className="p-2 text-gray-400 hover:text-emerald-500 transition-colors" title={item.isActive ? "Desativar" : "Ativar"}>
+                                                    {item.isActive ? <ToggleRight size={20} className="text-emerald-500"/> : <ToggleLeft size={20}/>}
+                                                </button>
+                                                <button onClick={() => handleOpenModal(item)} className="p-2 text-gray-400 hover:text-[#B8860B] transition-colors"><Edit3 size={16}/></button>
+                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+
+                {/* TAB: IMPORT */}
+                {activeTab === 'import' && (
+                    <div className="space-y-6">
+                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+                            {/* Search */}
+                            <div className="relative w-full md:flex-1 group">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={18} />
+                                <input 
+                                    type="text"
+                                    placeholder="Buscar por nome do cliente..."
+                                    value={reviewSearch}
+                                    onChange={(e) => setReviewSearch(e.target.value)}
+                                    className="w-full h-12 pl-12 pr-12 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B]/20 transition-all shadow-inner placeholder:text-gray-400"
+                                />
+                                {reviewSearch && (
+                                    <button 
+                                        onClick={() => setReviewSearch('')}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-100 rounded-full transition-all"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Date Filter */}
+                            <div className="flex items-center gap-2 w-full md:w-auto bg-[#F5F5F7] p-1.5 rounded-xl border border-transparent">
+                                <div className="flex items-center gap-2 px-3">
+                                    <Calendar size={16} className="text-gray-400"/>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide hidden sm:inline">Período:</span>
+                                </div>
+                                <input 
+                                    type="date" 
+                                    value={dateStart}
+                                    onChange={(e) => setDateStart(e.target.value)}
+                                    className="bg-white border border-gray-200 text-gray-600 text-xs rounded-lg px-2 py-2 outline-none focus:border-[#B8860B] h-9"
+                                />
+                                <span className="text-gray-300">-</span>
+                                <input 
+                                    type="date" 
+                                    value={dateEnd}
+                                    onChange={(e) => setDateEnd(e.target.value)}
+                                    className="bg-white border border-gray-200 text-gray-600 text-xs rounded-lg px-2 py-2 outline-none focus:border-[#B8860B] h-9"
+                                />
+                                {(dateStart || dateEnd) && (
+                                    <button onClick={() => { setDateStart(''); setDateEnd(''); }} className="p-2 hover:bg-white rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                                        <X size={14} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4">
+                            {filteredReviews.length === 0 ? (
+                                <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
+                                    <p className="font-medium text-sm">Nenhuma avaliação disponível para importação.</p>
+                                    <button onClick={() => { setReviewSearch(''); setDateStart(''); setDateEnd(''); }} className="text-[#B8860B] text-[10px] font-bold uppercase tracking-widest mt-2 hover:underline">
+                                        Limpar filtros
+                                    </button>
+                                </div>
+                            ) : (
+                                filteredReviews.map(review => (
+                                    <div key={review.id} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-6 items-start md:items-center">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="flex text-[#B8860B] gap-0.5">
+                                                    {[...Array(5)].map((_, i) => <Star key={i} size={12} fill={i < review.rating ? "currentColor" : "none"} />)}
+                                                </div>
+                                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{review.createdAt}</span>
+                                            </div>
+                                            <p className="text-sm text-gray-600 italic mb-2">"{review.text}"</p>
+                                            <p className="text-xs font-bold text-[#1d1d1f] flex items-center gap-2">
+                                                {review.userName} 
+                                                {review.userLocation && <span className="font-normal text-gray-400">• {review.userLocation}</span>}
+                                            </p>
+                                        </div>
+                                        <button 
+                                            onClick={() => handlePromoteReview(review)}
+                                            className="bg-[#F5F5F7] text-[#1d1d1f] hover:bg-[#1d1d1f] hover:text-white px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 shrink-0 border border-gray-200 hover:border-transparent w-full md:w-auto justify-center"
+                                        >
+                                            <Upload size={14} /> Importar
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* TAB: SETTINGS */}
+                {activeTab === 'settings' && (
+                    <div className="max-w-2xl mx-auto bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+                        <h3 className="text-xl font-serif font-bold text-[#1d1d1f] mb-6 flex items-center gap-2">
+                            <Settings size={20} className="text-[#B8860B]" /> Configurações de Exibição
+                        </h3>
+                        
+                        <div className="space-y-8">
+                            <div>
+                                <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-3 block">Modo de Rotação</label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button 
+                                        onClick={() => setSettings({...settings, displayMode: 'random'})}
+                                        className={`p-6 rounded-xl border text-center transition-all ${settings.displayMode === 'random' ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-lg' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <div className="flex justify-center mb-3"><RotateCw size={24} /></div>
+                                        <span className="text-xs font-bold uppercase tracking-widest">Aleatório</span>
+                                        <p className="text-[10px] mt-2 opacity-70">Exibe um depoimento diferente a cada atualização da página.</p>
+                                    </button>
+                                    <button 
+                                        onClick={() => setSettings({...settings, displayMode: 'sequential'})}
+                                        className={`p-6 rounded-xl border text-center transition-all ${settings.displayMode === 'sequential' ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-lg' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <div className="flex justify-center mb-3"><CheckCircle size={24} /></div>
+                                        <span className="text-xs font-bold uppercase tracking-widest">Sequencial</span>
+                                        <p className="text-[10px] mt-2 opacity-70">Segue a ordem manual definida na aba Gerenciar.</p>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-3 block">Limite de Rotação</label>
+                                <div className="flex items-center gap-4 bg-[#F5F5F7] p-4 rounded-xl">
+                                    <input 
+                                        type="range" 
+                                        min="1" 
+                                        max="20" 
+                                        value={settings.maxItems} 
+                                        onChange={(e) => setSettings({...settings, maxItems: parseInt(e.target.value)})}
+                                        className="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-[#1d1d1f]"
+                                    />
+                                    <span className="bg-white px-4 py-2 rounded-lg font-bold text-[#1d1d1f] shadow-sm w-16 text-center">{settings.maxItems}</span>
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-2">Define quantos depoimentos ativos serão considerados no ciclo de rotação (respeitando a ordem).</p>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100 flex justify-end">
+                                <button 
+                                    onClick={handleSaveSettings}
+                                    disabled={isSaved} 
+                                    className={`px-8 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg flex items-center gap-2 ${
+                                        isSaved 
+                                        ? 'bg-emerald-500 text-white cursor-default' 
+                                        : 'bg-[#B8860B] text-white hover:bg-[#966d09]'
+                                    }`}
+                                >
+                                    {isSaved ? (
+                                        <>
+                                            <Check size={16} /> Salvo
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save size={16} /> Salvar Configurações
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* MODAL EDIT/CREATE - FULL SCREEN */}
             {isModalOpen && (
@@ -588,12 +601,27 @@ const AdminLoginTestimonials: React.FC = () => {
 
                         <div className="p-6 border-t border-gray-100 bg-white flex gap-4">
                             <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-gray-200 transition-all">Cancelar</button>
-                            <button type="submit" form="testimonialForm" className="flex-1 py-3 bg-[#1d1d1f] text-white font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-black transition-all shadow-lg">Salvar</button>
+                            <button 
+                                type="submit" 
+                                form="testimonialForm" 
+                                disabled={!!editingId && !isDirty}
+                                className={`flex-1 py-3 font-bold text-[10px] uppercase tracking-widest rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 ${
+                                    (!!editingId && !isDirty) 
+                                    ? 'bg-gray-100 text-gray-400 cursor-default shadow-none' 
+                                    : 'bg-[#1d1d1f] text-white hover:bg-black'
+                                }`}
+                            >
+                                {(!!editingId && !isDirty) ? (
+                                    <><Check size={16}/> Salvo</>
+                                ) : (
+                                    <><Save size={16}/> Salvar</>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 };
 

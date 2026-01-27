@@ -4,7 +4,7 @@ import {
     Package, Clock, Box, Truck, CheckCircle, ChevronDown, 
     Loader2, Download, MapPin, Receipt, Search, X, ChevronLeft, ChevronRight, ZoomIn, Calendar, Layers,
     Camera, Shield, Trash2, Edit3, UserCheck, RefreshCw, Wand2, ToggleRight, ToggleLeft, List, Home, Plus, ShieldCheck,
-    ChevronsLeft, ChevronsRight, Ban, AlertOctagon, XCircle, RotateCcw
+    ChevronsLeft, ChevronsRight, Ban, AlertOctagon, XCircle, RotateCcw, Check, Save
 } from 'lucide-react';
 import { Order, MagnetItem, User, Address } from '../../types';
 import { updateOrderStatus, softDeleteOrder, restoreOrder, updateOrderDetails, getUsers } from '../../services/mockService';
@@ -119,7 +119,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
 
     // Sync Search Term and Address when editing order changes
     useEffect(() => {
-        if (editingOrder && isEditModalOpen) {
+        if (isEditModalOpen && editingOrder) {
             const currentUser = allUsers.find(u => u.id === editingOrder.userId);
             if (currentUser) {
                 setUserSearchTerm(currentUser.name);
@@ -127,7 +127,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 setUserSearchTerm('');
             }
 
-            // Populate Address Form
+            // Populate Address Form only when opening (to avoid overwriting while editing other parts)
+            // Use local state or ref to check if it's "fresh open" could be better, but dependency on ID is good enough
             if (editingOrder.shippingAddress) {
                 setEditAddressForm(editingOrder.shippingAddress);
                 setActiveAddressCardId(null); // Reset selection on open
@@ -136,7 +137,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 setActiveAddressCardId('new');
             }
         }
-    }, [editingOrder, isEditModalOpen, allUsers]);
+    }, [isEditModalOpen, editingOrder?.id]); // FIX: Dependency on ID prevents reset on internal state changes
 
     // Reset pagination when filters change
     useEffect(() => {
@@ -232,6 +233,32 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
         if (!editingOrder) return null;
         return allUsers.find(u => u.id === editingOrder.userId);
     }, [editingOrder, allUsers]);
+
+    // Identify Original Order for Dirty Check
+    const originalOrder = useMemo(() => {
+        return orders.find(o => o.id === editingOrder?.id);
+    }, [orders, editingOrder?.id]);
+
+    // Dirty Check Logic
+    const isDirty = useMemo(() => {
+        if (!editingOrder || !originalOrder) return false;
+
+        // 1. User ID Check
+        if (editingOrder.userId !== originalOrder.userId) return true;
+
+        // 2. Address Check (Deep Compare)
+        // Normalize fields to ensure undefined vs empty string doesn't flag as dirty
+        const norm = (obj: any) => JSON.stringify(obj || {}, (k, v) => v === undefined || v === null ? "" : v);
+        const currentAddr = editAddressForm;
+        const originalAddr = originalOrder.shippingAddress;
+        
+        if (norm(currentAddr) !== norm(originalAddr)) return true;
+
+        // 3. Items Check (e.g. Consent)
+        if (JSON.stringify(editingOrder.items) !== JSON.stringify(originalOrder.items)) return true;
+
+        return false;
+    }, [editingOrder, originalOrder, editAddressForm]);
 
     const handleFillAddress = (addressId: string) => {
         setActiveAddressCardId(addressId);
@@ -597,6 +624,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 </div>
 
                 <div className="space-y-4">
+                    {/* ... (Existing List Logic) ... */}
                     {currentOrders.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
                             <p className="text-gray-400 text-sm font-medium">Nenhum pedido encontrado com estes filtros.</p>
@@ -615,11 +643,10 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
 
                             return (
                                 <div key={order.id} className={`bg-white rounded-xl border transition-all duration-300 relative overflow-hidden ${isExpanded ? 'shadow-xl border-[#B8860B]/30' : 'border-gray-100 shadow-sm hover:shadow-md'} ${order.deleted ? 'opacity-70 grayscale' : ''}`}>
-                                    
+                                    {/* ... (Existing Card Header and Expanded Content) ... */}
                                     {/* Card Header (Clickable) */}
                                     <div onClick={() => setExpandedOrderId(isExpanded ? null : order.id)} className="p-6 flex flex-col md:flex-row justify-between items-center gap-6 cursor-pointer select-none relative group">
-                                        
-                                        {/* Mobile Arrow - Top Right Absolute */}
+                                        {/* Mobile Arrow */}
                                         <div className="absolute top-6 right-6 md:hidden">
                                             <div className={`p-2 rounded-full bg-[#F5F5F7] text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-[#1d1d1f] text-white' : ''}`}>
                                                 <ChevronDown size={16} />
@@ -640,7 +667,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest truncate">
                                                         #{order.id} • {order.itemsCount} Itens
                                                     </p>
-                                                    {/* Badge via Admin moved here */}
                                                     {order.createdByAdmin && (
                                                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[8px] font-bold uppercase tracking-widest border border-indigo-100 shrink-0" title="Criado manualmente pelo painel">
                                                             <Shield size={10} /> Via Admin
@@ -650,7 +676,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                             </div>
                                         </div>
                                         
-                                        {/* Reduced gap and adjusted spacing for mobile */}
                                         <div className="flex items-center justify-between w-full md:w-auto gap-2 md:gap-4 border-t md:border-t-0 border-gray-50 pt-4 md:pt-0">
                                             {!order.deleted && !isCancelled && (
                                                 <div className="flex items-center gap-1">
@@ -696,11 +721,10 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                         </div>
                                     </div>
 
-                                    {/* Expanded Content (Same as before) */}
+                                    {/* Expanded Content */}
                                     {isExpanded && (
                                         <div className="border-t border-gray-100 bg-[#FAFAFA] p-4 md:p-8 animate-fade-in rounded-b-xl cursor-default">
-                                            
-                                            {/* STATUS VISUALIZATION: TIMELINE OR CANCEL BANNER */}
+                                            {/* Timeline / Cancel Banner */}
                                             {isCancelled ? (
                                                 <div className="mb-8 p-6 bg-red-50 border border-red-100 rounded-xl flex items-start gap-4">
                                                     <div className="p-2 bg-red-100 rounded-full text-red-600 shrink-0">
@@ -714,7 +738,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                     </div>
                                                 </div>
                                             ) : (
-                                                // ... Timeline ...
                                                 <div className="mb-8 relative px-0 md:px-10 py-6 select-none">
                                                     <div className="absolute top-1/2 left-[12.5%] right-[12.5%] h-1 -translate-y-1/2 z-0 rounded-full overflow-hidden bg-gray-200">
                                                         <div className="h-full transition-all duration-500 ease-out bg-[#1d1d1f]" style={{ width: `${progressPercent}%` }}></div>
@@ -750,7 +773,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                 </div>
                                             )}
 
-                                            {/* ... Addresses and Summary ... */}
+                                            {/* Details Grid */}
                                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                                                 <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                                                     <h4 className="text-[10px] font-bold text-[#B8860B] uppercase tracking-widest mb-4 flex items-center gap-2"><MapPin size={14} /> Entrega</h4>
@@ -797,7 +820,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                 {downloadingOrderId === order.id ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Baixar Arquivos
                                             </button>
 
-                                            {/* ... Grouped Items ... */}
+                                            {/* Items List */}
                                             {order.items && order.items.length > 0 && (
                                                 <div className="space-y-8">
                                                     <h4 className="text-[10px] font-bold text-[#B8860B] uppercase tracking-widest border-b border-gray-100 pb-2">Itens Separados por Kit</h4>
@@ -824,7 +847,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                                 <div className="flex gap-3 overflow-x-auto pb-2 md:flex-wrap md:overflow-visible md:pb-0 scrollbar-hide">
                                                                     {kitItems.map((item, kitIdx) => (
                                                                         <div key={item.id} className="w-20 h-20 rounded-lg border border-gray-200 p-1 bg-white shadow-sm shrink-0 cursor-zoom-in hover:border-[#B8860B] transition-colors relative group" onClick={() => openLightbox(kitItems, kitIdx)}>
-                                                                            {/* Prioritize High Quality in Thumbnail */}
                                                                             <img src={item.originalUrl || item.highResUrl || item.croppedUrl} className="w-full h-full object-cover rounded" alt={`Item ${kitIdx}`} />
                                                                             <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded"><ZoomIn size={16} className="text-white drop-shadow-md"/></div>
                                                                         </div>
@@ -844,20 +866,15 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 </div>
 
                 {/* PAGINATION FOOTER */}
+                {/* ... (Existing Pagination) ... */}
                 {filteredOrders.length > 0 && (
                     <div className="flex flex-col sm:flex-row justify-end items-center gap-4 sm:gap-6 pt-6 text-[11px] text-gray-500 font-medium select-none animate-fade-in border-t border-gray-100/50">
-                        {/* ... Existing Pagination JSX ... */}
                         <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto justify-between sm:justify-start">
-                            {/* Items Per Page */}
                             <div className="flex items-center gap-2">
                                 <span className="hidden sm:inline">Itens por página:</span>
                                 <span className="sm:hidden">Exibir:</span>
                                 <div className="relative group">
-                                    <select 
-                                        value={itemsPerPage}
-                                        onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                                        className="appearance-none bg-transparent hover:bg-gray-100 rounded px-2 py-1 pr-6 cursor-pointer focus:outline-none transition-colors text-[#1d1d1f]"
-                                    >
+                                    <select value={itemsPerPage} onChange={(e) => setItemsPerPage(Number(e.target.value))} className="appearance-none bg-transparent hover:bg-gray-100 rounded px-2 py-1 pr-6 cursor-pointer focus:outline-none transition-colors text-[#1d1d1f]">
                                         <option value={10}>10</option>
                                         <option value={30}>30</option>
                                         <option value={50}>50</option>
@@ -865,54 +882,23 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                     <ChevronDown size={10} className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none opacity-50 group-hover:opacity-100" />
                                 </div>
                             </div>
-
-                            {/* Range Info */}
                             <span className="text-[#1d1d1f]">
                                 {indexOfFirstOrder + 1}-{Math.min(indexOfLastOrder, filteredOrders.length)} de {filteredOrders.length}
                             </span>
                         </div>
-
-                        {/* Navigation Icons */}
                         <div className="flex items-center gap-2 w-full sm:w-auto justify-center bg-gray-50 sm:bg-transparent p-1.5 sm:p-0 rounded-xl sm:rounded-none border sm:border-none border-gray-100">
-                            <button 
-                                onClick={() => paginate(1)}
-                                disabled={currentPage === 1}
-                                className="p-2 sm:p-1.5 rounded-lg hover:bg-white sm:hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f] shadow-sm sm:shadow-none"
-                                title="Primeira Página"
-                            >
-                                <ChevronsLeft size={16} strokeWidth={1.5} />
-                            </button>
-                            <button 
-                                onClick={() => paginate(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                className="p-2 sm:p-1.5 rounded-lg hover:bg-white sm:hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f] shadow-sm sm:shadow-none"
-                                title="Página Anterior"
-                            >
-                                <ChevronLeft size={16} strokeWidth={1.5} />
-                            </button>
-                            <button 
-                                onClick={() => paginate(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                                className="p-2 sm:p-1.5 rounded-lg hover:bg-white sm:hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f] shadow-sm sm:shadow-none"
-                                title="Próxima Página"
-                            >
-                                <ChevronRight size={16} strokeWidth={1.5} />
-                            </button>
-                            <button 
-                                onClick={() => paginate(totalPages)}
-                                disabled={currentPage === totalPages}
-                                className="p-2 sm:p-1.5 rounded-lg hover:bg-white sm:hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f] shadow-sm sm:shadow-none"
-                                title="Última Página"
-                            >
-                                <ChevronsRight size={16} strokeWidth={1.5} />
-                            </button>
+                            <button onClick={() => paginate(1)} disabled={currentPage === 1} className="p-2 sm:p-1.5 rounded-lg hover:bg-white sm:hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f] shadow-sm sm:shadow-none"><ChevronsLeft size={16} strokeWidth={1.5} /></button>
+                            <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="p-2 sm:p-1.5 rounded-lg hover:bg-white sm:hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f] shadow-sm sm:shadow-none"><ChevronLeft size={16} strokeWidth={1.5} /></button>
+                            <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="p-2 sm:p-1.5 rounded-lg hover:bg-white sm:hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f] shadow-sm sm:shadow-none"><ChevronRight size={16} strokeWidth={1.5} /></button>
+                            <button onClick={() => paginate(totalPages)} disabled={currentPage === totalPages} className="p-2 sm:p-1.5 rounded-lg hover:bg-white sm:hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1d1d1f] shadow-sm sm:shadow-none"><ChevronsRight size={16} strokeWidth={1.5} /></button>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* CANCEL CONFIRMATION MODAL */}
+            {/* MODALS */}
             {isCancelModalOpen && orderToCancel && (
+                // ... (Existing Cancel Modal) ...
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsCancelModalOpen(false)}></div>
                     <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-8 text-center z-10">
@@ -920,69 +906,34 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                             <Ban size={32} />
                         </div>
                         <h3 className="font-serif font-bold text-2xl text-[#1d1d1f] mb-2">Cancelar Pedido #{orderToCancel.id}?</h3>
-                        <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-                            Esta ação interromperá o fluxo do pedido. <br/>É <strong>obrigatório</strong> fornecer uma justificativa para registro.
-                        </p>
-                        
-                        <textarea 
-                            value={cancellationReason}
-                            onChange={(e) => setCancellationReason(e.target.value)}
-                            placeholder="Ex: Cancelado a pedido do cliente; Falta de estoque; Erro no pagamento..."
-                            className="w-full h-32 p-4 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-red-300 focus:ring-2 focus:ring-red-100 transition-all resize-none mb-6"
-                        />
-
+                        <p className="text-sm text-gray-500 mb-6 leading-relaxed">Esta ação interromperá o fluxo do pedido. <br/>É <strong>obrigatório</strong> fornecer uma justificativa para registro.</p>
+                        <textarea value={cancellationReason} onChange={(e) => setCancellationReason(e.target.value)} placeholder="Ex: Cancelado a pedido do cliente; Falta de estoque; Erro no pagamento..." className="w-full h-32 p-4 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-red-300 focus:ring-2 focus:ring-red-100 transition-all resize-none mb-6" />
                         <div className="flex gap-3">
-                            <button 
-                                onClick={() => setIsCancelModalOpen(false)}
-                                className="flex-1 py-4 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all"
-                            >
-                                Voltar
-                            </button>
-                            <button 
-                                onClick={confirmCancellation}
-                                className="flex-1 py-4 bg-red-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={!cancellationReason.trim()}
-                            >
-                                Confirmar Cancelamento
-                            </button>
+                            <button onClick={() => setIsCancelModalOpen(false)} className="flex-1 py-4 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all">Voltar</button>
+                            <button onClick={confirmCancellation} className="flex-1 py-4 bg-red-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!cancellationReason.trim()}>Confirmar Cancelamento</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* REVERT CONFIRMATION MODAL */}
             {isRevertModalOpen && orderToRevert && (
+                // ... (Existing Revert Modal) ...
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsRevertModalOpen(false)}></div>
                     <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-8 text-center z-10">
-                        <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <RotateCcw size={32} />
-                        </div>
+                        <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"><RotateCcw size={32} /></div>
                         <h3 className="font-serif font-bold text-2xl text-[#1d1d1f] mb-2">Restaurar Pedido #{orderToRevert.id}?</h3>
-                        <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-                            O pedido voltará para o status <strong>'Pendente'</strong> e o motivo do cancelamento será removido.
-                        </p>
-                        
+                        <p className="text-sm text-gray-500 mb-8 leading-relaxed">O pedido voltará para o status <strong>'Pendente'</strong> e o motivo do cancelamento será removido.</p>
                         <div className="flex gap-3">
-                            <button 
-                                onClick={() => setIsRevertModalOpen(false)}
-                                className="flex-1 py-4 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all"
-                            >
-                                Voltar
-                            </button>
-                            <button 
-                                onClick={confirmRevert}
-                                className="flex-1 py-4 bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200"
-                            >
-                                Confirmar Restauração
-                            </button>
+                            <button onClick={() => setIsRevertModalOpen(false)} className="flex-1 py-4 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all">Voltar</button>
+                            <button onClick={confirmRevert} className="flex-1 py-4 bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200">Confirmar Restauração</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* LIGHTBOX OVERLAY (Same as before) */}
             {isLightboxOpen && (
+                // ... (Existing Lightbox) ...
                 <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center animate-fade-in p-4" onClick={closeLightbox}>
                     <button onClick={closeLightbox} className="absolute top-4 right-4 md:top-8 md:right-8 p-3 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all z-50"><X size={24} /></button>
                     <div className="relative w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
@@ -994,7 +945,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 </div>
             )}
 
-            {/* EDIT ORDER MODAL (Same as before) */}
+            {/* EDIT ORDER MODAL */}
             {isEditModalOpen && editingOrder && (
                 <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
@@ -1008,76 +959,36 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                         </div>
 
                         <div className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
-                            {/* 1. Change User (Autocomplete Search) */}
+                            {/* ... (Existing Content: User Search, Address, Consents, etc) ... */}
                             <div className="space-y-3">
                                 <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest flex items-center gap-2"><UserCheck size={14}/> Cliente Vinculado</label>
-                                
                                 <div className="relative">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16}/>
-                                    <input 
-                                        type="text"
-                                        placeholder="Buscar por nome ou e-mail..."
-                                        className="w-full h-12 pl-12 pr-10 bg-[#F5F5F7] rounded-lg text-sm border border-transparent focus:bg-white focus:border-[#B8860B] outline-none transition-all placeholder:text-gray-400"
-                                        value={userSearchTerm}
-                                        onChange={(e) => {
-                                            setUserSearchTerm(e.target.value);
-                                            setShowUserDropdown(true);
-                                        }}
-                                        onFocus={() => setShowUserDropdown(true)}
-                                        ref={userSearchInputRef}
-                                    />
-                                    {userSearchTerm && (
-                                        <button 
-                                            onClick={handleClearUserSearch}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#B8860B] bg-[#F5F5F7] hover:bg-gray-100 rounded-full p-1 transition-all"
-                                            title="Limpar busca"
-                                        >
-                                            <X size={14} />
-                                        </button>
-                                    )}
-                                    
-                                    {/* Dropdown Results */}
+                                    <input type="text" placeholder="Buscar por nome ou e-mail..." className="w-full h-12 pl-12 pr-10 bg-[#F5F5F7] rounded-lg text-sm border border-transparent focus:bg-white focus:border-[#B8860B] outline-none transition-all placeholder:text-gray-400" value={userSearchTerm} onChange={(e) => { setUserSearchTerm(e.target.value); setShowUserDropdown(true); }} onFocus={() => setShowUserDropdown(true)} ref={userSearchInputRef} />
+                                    {userSearchTerm && (<button onClick={handleClearUserSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#B8860B] bg-[#F5F5F7] hover:bg-gray-100 rounded-full p-1 transition-all" title="Limpar busca"><X size={14} /></button>)}
                                     {showUserDropdown && userSearchTerm && (
                                         <div className="absolute z-20 top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-100 max-h-48 overflow-y-auto custom-scrollbar">
                                             {filteredUsersForModal.length > 0 ? (
                                                 filteredUsersForModal.map(u => (
-                                                    <div 
-                                                        key={u.id}
-                                                        onClick={() => handleSelectUser(u)}
-                                                        className={`px-4 py-3 cursor-pointer hover:bg-[#F5F5F7] flex flex-col ${editingOrder.userId === u.id ? 'bg-[#F5F5F7] border-l-4 border-[#B8860B]' : 'border-l-4 border-transparent'}`}
-                                                    >
+                                                    <div key={u.id} onClick={() => handleSelectUser(u)} className={`px-4 py-3 cursor-pointer hover:bg-[#F5F5F7] flex flex-col ${editingOrder.userId === u.id ? 'bg-[#F5F5F7] border-l-4 border-[#B8860B]' : 'border-l-4 border-transparent'}`}>
                                                         <span className="text-sm font-bold text-[#1d1d1f]">{u.name}</span>
                                                         <span className="text-[10px] text-gray-400">{u.email}</span>
                                                     </div>
                                                 ))
-                                            ) : (
-                                                <div className="px-4 py-3 text-center text-xs text-gray-400">Nenhum cliente encontrado.</div>
-                                            )}
+                                            ) : (<div className="px-4 py-3 text-center text-xs text-gray-400">Nenhum cliente encontrado.</div>)}
                                         </div>
                                     )}
-                                    
-                                    {/* Overlay to close dropdown on click outside - Simple transparent fixed div */}
-                                    {showUserDropdown && (
-                                        <div className="fixed inset-0 z-10" onClick={() => setShowUserDropdown(false)}></div>
-                                    )}
+                                    {showUserDropdown && (<div className="fixed inset-0 z-10" onClick={() => setShowUserDropdown(false)}></div>)}
                                 </div>
                             </div>
 
-                            {/* 1.5 Address Editing */}
                             <div className="space-y-3 pt-4 border-t border-gray-50">
                                 <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest flex items-center gap-2"><MapPin size={14}/> Endereço de Entrega</label>
-                                
-                                {/* CARD SELECTION GRID */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                                     {editingUserObject?.savedAddresses?.map((addr, i) => {
                                         const isSelected = activeAddressCardId === addr.id;
                                         return (
-                                            <button
-                                                key={addr.id || i}
-                                                type="button"
-                                                onClick={() => handleFillAddress(addr.id || '')}
-                                                className={`p-3 rounded-xl border text-left transition-all relative group ${isSelected ? 'bg-[#B8860B]/5 border-[#B8860B] ring-1 ring-[#B8860B]/20' : 'bg-white border-gray-200 hover:border-gray-300'}`}
-                                            >
+                                            <button key={addr.id || i} type="button" onClick={() => handleFillAddress(addr.id || '')} className={`p-3 rounded-xl border text-left transition-all relative group ${isSelected ? 'bg-[#B8860B]/5 border-[#B8860B] ring-1 ring-[#B8860B]/20' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
                                                 {addr.nickname && <span className="text-[9px] font-bold uppercase tracking-widest block mb-1 text-[#B8860B]">{addr.nickname}</span>}
                                                 <p className="text-xs font-bold text-[#1d1d1f] truncate">{addr.street}, {addr.number}</p>
                                                 <p className="text-[10px] text-gray-500">{addr.zipCode}</p>
@@ -1085,26 +996,14 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                             </button>
                                         );
                                     })}
-                                    
-                                    <button 
-                                        type="button"
-                                        onClick={() => handleFillAddress('new')}
-                                        className={`p-3 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-[#B8860B] hover:border-[#B8860B] transition-all bg-gray-50/50 hover:bg-white ${activeAddressCardId === 'new' ? 'border-[#B8860B] text-[#B8860B] bg-[#B8860B]/5' : 'border-gray-200'}`}
-                                    >
+                                    <button type="button" onClick={() => handleFillAddress('new')} className={`p-3 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-[#B8860B] hover:border-[#B8860B] transition-all bg-gray-50/50 hover:bg-white ${activeAddressCardId === 'new' ? 'border-[#B8860B] text-[#B8860B] bg-[#B8860B]/5' : 'border-gray-200'}`}>
                                         <Plus size={18} />
                                         <span className="text-[10px] font-bold uppercase tracking-widest">Novo / Manual</span>
                                     </button>
                                 </div>
-
                                 <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
                                     <div className="relative">
-                                        <input 
-                                            value={editAddressForm.zipCode} 
-                                            onChange={e => handleCepLookup(e.target.value)} 
-                                            placeholder="CEP" 
-                                            className={inputClasses}
-                                            maxLength={9}
-                                        />
+                                        <input value={editAddressForm.zipCode} onChange={e => handleCepLookup(e.target.value)} placeholder="CEP" className={inputClasses} maxLength={9} />
                                         {isFetchingCep && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#B8860B]"/>}
                                     </div>
                                     <div className="grid grid-cols-3 gap-3">
@@ -1122,7 +1021,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                 </div>
                             </div>
 
-                            {/* 2. Consent Management Per Kit */}
                             <div className="space-y-4 pt-4 border-t border-gray-100">
                                 <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest flex items-center gap-2"><Camera size={14}/> Consentimento por Kit</label>
                                 {Object.entries(groupItemsByKit(editingOrder.items || [])).map(([kitId, items]) => {
@@ -1143,15 +1041,10 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                 {(!editingOrder.items || editingOrder.items.length === 0) && (<div className="p-4 rounded-lg bg-gray-50 border border-gray-200 text-center text-xs text-gray-400">Nenhum kit encontrado neste pedido.</div>)}
                             </div>
 
-                            {/* 3. Studio Links Per Kit */}
                             <div className="space-y-4 pt-4 border-t border-gray-100">
                                 <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest flex items-center gap-2"><Wand2 size={14}/> Edição de Fotos (Por Kit)</label>
                                 {Object.entries(groupItemsByKit(editingOrder.items || [])).map(([kitId, items]) => (
-                                    <button 
-                                        key={kitId}
-                                        onClick={() => handleOpenAdminStudio(editingOrder.id, kitId)}
-                                        className="w-full py-4 bg-[#1d1d1f] text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-black shadow-lg transition-all flex items-center justify-center gap-3"
-                                    >
+                                    <button key={kitId} onClick={() => handleOpenAdminStudio(editingOrder.id, kitId)} className="w-full py-4 bg-[#1d1d1f] text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-black shadow-lg transition-all flex items-center justify-center gap-3">
                                         <Wand2 size={16} /> Editar {getKitName(items.length)} ({items.length} fotos)
                                     </button>
                                 ))}
@@ -1161,7 +1054,21 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
 
                         <div className="p-6 border-t border-gray-50 bg-white flex gap-4">
                             <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-gray-200 transition-all">Cancelar</button>
-                            <button onClick={saveEditOrder} className="flex-1 py-3 bg-[#B8860B] text-white font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-[#966d09] shadow-md transition-all">Salvar Alterações</button>
+                            <button 
+                                onClick={saveEditOrder} 
+                                disabled={!isDirty}
+                                className={`flex-1 py-3 font-bold text-[10px] uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 ${
+                                    isDirty 
+                                    ? 'bg-[#1d1d1f] text-white hover:bg-black shadow-md' 
+                                    : 'bg-gray-100 text-gray-400 cursor-default'
+                                }`}
+                            >
+                                {!isDirty ? (
+                                    <><Check size={16} /> Salvo</>
+                                ) : (
+                                    <><Save size={16} /> Salvar Alterações</>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
