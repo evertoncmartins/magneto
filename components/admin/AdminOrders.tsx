@@ -1,10 +1,11 @@
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
     Package, Clock, Box, Truck, CheckCircle, ChevronDown, 
     Loader2, Download, MapPin, Receipt, Search, X, ChevronLeft, ChevronRight, ZoomIn, Calendar, Layers,
     Camera, Shield, Trash2, Edit3, UserCheck, RefreshCw, Wand2, ToggleRight, ToggleLeft, List, Home, Plus, ShieldCheck,
-    ChevronsLeft, ChevronsRight, Ban, AlertOctagon, XCircle, RotateCcw, Check, Save
+    ChevronsLeft, ChevronsRight, Ban, AlertOctagon, XCircle, RotateCcw, Check, Save, FileText, DollarSign, Activity, Globe, MousePointer
 } from 'lucide-react';
 import { Order, MagnetItem, User, Address } from '../../types';
 import { updateOrderStatus, softDeleteOrder, restoreOrder, updateOrderDetails, getUsers } from '../../services/mockService';
@@ -81,6 +82,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
     // Edit Modal State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+    const [activeTab, setActiveTab] = useState<'summary' | 'production' | 'logistics' | 'financial' | 'consent'>('summary');
+    const [trackingCode, setTrackingCode] = useState('');
     const [allUsers, setAllUsers] = useState<User[]>([]);
     
     // Cancel Modal State
@@ -127,17 +130,20 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 setUserSearchTerm('');
             }
 
-            // Populate Address Form only when opening (to avoid overwriting while editing other parts)
-            // Use local state or ref to check if it's "fresh open" could be better, but dependency on ID is good enough
+            // Populate Address Form only when opening
             if (editingOrder.shippingAddress) {
                 setEditAddressForm(editingOrder.shippingAddress);
-                setActiveAddressCardId(null); // Reset selection on open
+                setActiveAddressCardId(null);
             } else {
                 setEditAddressForm({ street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: '' });
                 setActiveAddressCardId('new');
             }
+            
+            // Reset tab
+            setActiveTab('summary');
+            setTrackingCode(''); // Reset tracking code logic
         }
-    }, [isEditModalOpen, editingOrder?.id]); // FIX: Dependency on ID prevents reset on internal state changes
+    }, [isEditModalOpen, editingOrder?.id]);
 
     // Reset pagination when filters change
     useEffect(() => {
@@ -247,7 +253,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
         if (editingOrder.userId !== originalOrder.userId) return true;
 
         // 2. Address Check (Deep Compare)
-        // Normalize fields to ensure undefined vs empty string doesn't flag as dirty
         const norm = (obj: any) => JSON.stringify(obj || {}, (k, v) => v === undefined || v === null ? "" : v);
         const currentAddr = editAddressForm;
         const originalAddr = originalOrder.shippingAddress;
@@ -256,9 +261,12 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
 
         // 3. Items Check (e.g. Consent)
         if (JSON.stringify(editingOrder.items) !== JSON.stringify(originalOrder.items)) return true;
+        
+        // 4. Tracking Code Check (Simulated field)
+        if (trackingCode !== '') return true; 
 
         return false;
-    }, [editingOrder, originalOrder, editAddressForm]);
+    }, [editingOrder, originalOrder, editAddressForm, trackingCode]);
 
     const handleFillAddress = (addressId: string) => {
         setActiveAddressCardId(addressId);
@@ -410,11 +418,17 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
         if (editingOrder) {
             // Se o usuário mudou, atualiza nome do cliente também
             const selectedUser = allUsers.find(u => u.id === editingOrder.userId);
-            const updates = {
+            const updates: Partial<Order> = {
                 ...editingOrder,
                 customerName: selectedUser ? selectedUser.name : editingOrder.customerName,
                 shippingAddress: editAddressForm // Save the updated address
             };
+            
+            // Simula atualização de tracking (muda status para shipped)
+            if (trackingCode) {
+                updates.status = 'shipped';
+            }
+
             updateOrderDetails(editingOrder.id, updates);
             refreshData();
             setIsEditModalOpen(false);
@@ -498,11 +512,26 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
 
     const inputClasses = "w-full h-10 px-3 bg-[#F5F5F7] rounded-lg text-sm text-[#1d1d1f] outline-none focus:bg-white focus:ring-1 focus:ring-[#B8860B] border border-transparent transition-all placeholder:text-gray-400";
 
+    const TabButton = ({ id, icon: Icon, label }: any) => (
+        <button 
+            onClick={() => setActiveTab(id)}
+            className={`flex-1 py-4 flex items-center justify-center gap-2 border-b-2 transition-all ${
+                activeTab === id 
+                ? 'border-[#1d1d1f] text-[#1d1d1f]' 
+                : 'border-transparent text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'
+            }`}
+        >
+            <Icon size={16} />
+            <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">{label}</span>
+        </button>
+    );
+
     return (
         <>
             <div className="animate-fade-in space-y-6">
                 
                 {/* CONTROLS BAR: Search & Date */}
+                {/* ... (Existing Controls Bar & Filter Tabs Logic) ... */}
                 <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
                     {/* Search */}
                     <div className="relative w-full md:flex-1 group">
@@ -624,7 +653,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 </div>
 
                 <div className="space-y-4">
-                    {/* ... (Existing List Logic) ... */}
+                    {/* ... (Existing List Logic - Cards Rendering) ... */}
                     {currentOrders.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
                             <p className="text-gray-400 text-sm font-medium">Nenhum pedido encontrado com estes filtros.</p>
@@ -643,7 +672,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
 
                             return (
                                 <div key={order.id} className={`bg-white rounded-xl border transition-all duration-300 relative overflow-hidden ${isExpanded ? 'shadow-xl border-[#B8860B]/30' : 'border-gray-100 shadow-sm hover:shadow-md'} ${order.deleted ? 'opacity-70 grayscale' : ''}`}>
-                                    {/* ... (Existing Card Header and Expanded Content) ... */}
                                     {/* Card Header (Clickable) */}
                                     <div onClick={() => setExpandedOrderId(isExpanded ? null : order.id)} className="p-6 flex flex-col md:flex-row justify-between items-center gap-6 cursor-pointer select-none relative group">
                                         {/* Mobile Arrow */}
@@ -866,7 +894,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 </div>
 
                 {/* PAGINATION FOOTER */}
-                {/* ... (Existing Pagination) ... */}
                 {filteredOrders.length > 0 && (
                     <div className="flex flex-col sm:flex-row justify-end items-center gap-4 sm:gap-6 pt-6 text-[11px] text-gray-500 font-medium select-none animate-fade-in border-t border-gray-100/50">
                         <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto justify-between sm:justify-start">
@@ -897,9 +924,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
             </div>
 
             {/* MODALS */}
-            {isCancelModalOpen && orderToCancel && (
-                // ... (Existing Cancel Modal) ...
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            {isCancelModalOpen && orderToCancel && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsCancelModalOpen(false)}></div>
                     <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-8 text-center z-10">
                         <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -913,12 +939,12 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                             <button onClick={confirmCancellation} className="flex-1 py-4 bg-red-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!cancellationReason.trim()}>Confirmar Cancelamento</button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {isRevertModalOpen && orderToRevert && (
-                // ... (Existing Revert Modal) ...
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            {isRevertModalOpen && orderToRevert && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsRevertModalOpen(false)}></div>
                     <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-8 text-center z-10">
                         <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"><RotateCcw size={32} /></div>
@@ -929,11 +955,11 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                             <button onClick={confirmRevert} className="flex-1 py-4 bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200">Confirmar Restauração</button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {isLightboxOpen && (
-                // ... (Existing Lightbox) ...
+            {isLightboxOpen && createPortal(
                 <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center animate-fade-in p-4" onClick={closeLightbox}>
                     <button onClick={closeLightbox} className="absolute top-4 right-4 md:top-8 md:right-8 p-3 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all z-50"><X size={24} /></button>
                     <div className="relative w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
@@ -942,117 +968,312 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                         {lightboxImages.length > 1 && (<button onClick={nextPhoto} className="absolute right-0 md:right-4 p-4 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all z-50"><ChevronRight size={36} strokeWidth={1.5} /></button>)}
                     </div>
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-black/50 rounded-full border border-white/10 pointer-events-none"><span className="text-[10px] font-bold text-white/80 tracking-[0.2em]">{lightboxIndex + 1} / {lightboxImages.length}</span></div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {/* EDIT ORDER MODAL */}
-            {isEditModalOpen && editingOrder && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            {/* EDIT ORDER MODAL - TABBED INTERFACE */}
+            {isEditModalOpen && editingOrder && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
-                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 max-h-[90vh]">
-                        <div className="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-white sticky top-0 z-10">
-                            <div>
-                                <h3 className="font-serif font-bold text-2xl text-[#1d1d1f]">Editar Pedido</h3>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Controle Total Admin</p>
+                    <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 max-h-[90vh]">
+                        {/* Header */}
+                        <div className="px-8 py-6 border-b border-gray-100 bg-white sticky top-0 z-20">
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <h3 className="font-serif font-bold text-2xl text-[#1d1d1f]">Editar Pedido #{editingOrder.id}</h3>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Painel Administrativo</p>
+                                </div>
+                                <button onClick={() => setIsEditModalOpen(false)}><X size={24} className="text-gray-400 hover:text-[#1d1d1f]"/></button>
                             </div>
-                            <button onClick={() => setIsEditModalOpen(false)}><X size={24} className="text-gray-400 hover:text-[#1d1d1f]"/></button>
+                            
+                            {/* Tab Navigation */}
+                            <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+                                <TabButton id="summary" icon={UserCheck} label="Resumo" />
+                                <TabButton id="production" icon={Box} label="Produção" />
+                                <TabButton id="logistics" icon={Truck} label="Logística" />
+                                <TabButton id="financial" icon={DollarSign} label="Financeiro" />
+                                <TabButton id="consent" icon={FileText} label="Termos" />
+                            </div>
                         </div>
 
-                        <div className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
-                            {/* ... (Existing Content: User Search, Address, Consents, etc) ... */}
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest flex items-center gap-2"><UserCheck size={14}/> Cliente Vinculado</label>
-                                <div className="relative">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16}/>
-                                    <input type="text" placeholder="Buscar por nome ou e-mail..." className="w-full h-12 pl-12 pr-10 bg-[#F5F5F7] rounded-lg text-sm border border-transparent focus:bg-white focus:border-[#B8860B] outline-none transition-all placeholder:text-gray-400" value={userSearchTerm} onChange={(e) => { setUserSearchTerm(e.target.value); setShowUserDropdown(true); }} onFocus={() => setShowUserDropdown(true)} ref={userSearchInputRef} />
-                                    {userSearchTerm && (<button onClick={handleClearUserSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#B8860B] bg-[#F5F5F7] hover:bg-gray-100 rounded-full p-1 transition-all" title="Limpar busca"><X size={14} /></button>)}
-                                    {showUserDropdown && userSearchTerm && (
-                                        <div className="absolute z-20 top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-100 max-h-48 overflow-y-auto custom-scrollbar">
-                                            {filteredUsersForModal.length > 0 ? (
-                                                filteredUsersForModal.map(u => (
-                                                    <div key={u.id} onClick={() => handleSelectUser(u)} className={`px-4 py-3 cursor-pointer hover:bg-[#F5F5F7] flex flex-col ${editingOrder.userId === u.id ? 'bg-[#F5F5F7] border-l-4 border-[#B8860B]' : 'border-l-4 border-transparent'}`}>
-                                                        <span className="text-sm font-bold text-[#1d1d1f]">{u.name}</span>
-                                                        <span className="text-[10px] text-gray-400">{u.email}</span>
-                                                    </div>
-                                                ))
-                                            ) : (<div className="px-4 py-3 text-center text-xs text-gray-400">Nenhum cliente encontrado.</div>)}
+                        {/* Content Area */}
+                        <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-[#F9F9FA]">
+                            
+                            {/* TAB 1: RESUMO */}
+                            {activeTab === 'summary' && (
+                                <div className="space-y-6 animate-fade-in">
+                                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                        <h4 className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-4 flex items-center gap-2">
+                                            <UserCheck size={14} className="text-[#B8860B]"/> Cliente Vinculado
+                                        </h4>
+                                        <div className="relative">
+                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16}/>
+                                            <input type="text" placeholder="Buscar por nome ou e-mail..." className="w-full h-12 pl-12 pr-10 bg-[#F5F5F7] rounded-lg text-sm border border-transparent focus:bg-white focus:border-[#B8860B] outline-none transition-all placeholder:text-gray-400" value={userSearchTerm} onChange={(e) => { setUserSearchTerm(e.target.value); setShowUserDropdown(true); }} onFocus={() => setShowUserDropdown(true)} ref={userSearchInputRef} />
+                                            {userSearchTerm && (<button onClick={handleClearUserSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#B8860B] bg-[#F5F5F7] hover:bg-gray-100 rounded-full p-1 transition-all" title="Limpar busca"><X size={14} /></button>)}
+                                            {showUserDropdown && userSearchTerm && (
+                                                <div className="absolute z-20 top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-100 max-h-48 overflow-y-auto custom-scrollbar">
+                                                    {filteredUsersForModal.length > 0 ? (
+                                                        filteredUsersForModal.map(u => (
+                                                            <div key={u.id} onClick={() => handleSelectUser(u)} className={`px-4 py-3 cursor-pointer hover:bg-[#F5F5F7] flex flex-col ${editingOrder.userId === u.id ? 'bg-[#F5F5F7] border-l-4 border-[#B8860B]' : 'border-l-4 border-transparent'}`}>
+                                                                <span className="text-sm font-bold text-[#1d1d1f]">{u.name}</span>
+                                                                <span className="text-[10px] text-gray-400">{u.email}</span>
+                                                            </div>
+                                                        ))
+                                                    ) : (<div className="px-4 py-3 text-center text-xs text-gray-400">Nenhum cliente encontrado.</div>)}
+                                                </div>
+                                            )}
+                                            {showUserDropdown && (<div className="fixed inset-0 z-10" onClick={() => setShowUserDropdown(false)}></div>)}
                                         </div>
-                                    )}
-                                    {showUserDropdown && (<div className="fixed inset-0 z-10" onClick={() => setShowUserDropdown(false)}></div>)}
-                                </div>
-                            </div>
+                                        <div className="grid grid-cols-2 gap-4 mt-4">
+                                            <div className="bg-[#F9F9FA] p-3 rounded-lg border border-gray-50">
+                                                <span className="text-[9px] text-gray-400 uppercase tracking-widest block mb-1">E-mail de Contato</span>
+                                                <span className="text-xs font-bold text-[#1d1d1f] truncate block">{editingUserObject?.email || 'N/A'}</span>
+                                            </div>
+                                            <div className="bg-[#F9F9FA] p-3 rounded-lg border border-gray-50">
+                                                <span className="text-[9px] text-gray-400 uppercase tracking-widest block mb-1">Telefone</span>
+                                                <span className="text-xs font-bold text-[#1d1d1f] truncate block">{editingUserObject?.phone || 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                            <div className="space-y-3 pt-4 border-t border-gray-50">
-                                <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest flex items-center gap-2"><MapPin size={14}/> Endereço de Entrega</label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                                    {editingUserObject?.savedAddresses?.map((addr, i) => {
-                                        const isSelected = activeAddressCardId === addr.id;
-                                        return (
-                                            <button key={addr.id || i} type="button" onClick={() => handleFillAddress(addr.id || '')} className={`p-3 rounded-xl border text-left transition-all relative group ${isSelected ? 'bg-[#B8860B]/5 border-[#B8860B] ring-1 ring-[#B8860B]/20' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
-                                                {addr.nickname && <span className="text-[9px] font-bold uppercase tracking-widest block mb-1 text-[#B8860B]">{addr.nickname}</span>}
-                                                <p className="text-xs font-bold text-[#1d1d1f] truncate">{addr.street}, {addr.number}</p>
-                                                <p className="text-[10px] text-gray-500">{addr.zipCode}</p>
-                                                {isSelected && <div className="absolute top-2 right-2 text-[#B8860B]"><CheckCircle size={14} /></div>}
-                                            </button>
-                                        );
-                                    })}
-                                    <button type="button" onClick={() => handleFillAddress('new')} className={`p-3 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-[#B8860B] hover:border-[#B8860B] transition-all bg-gray-50/50 hover:bg-white ${activeAddressCardId === 'new' ? 'border-[#B8860B] text-[#B8860B] bg-[#B8860B]/5' : 'border-gray-200'}`}>
-                                        <Plus size={18} />
-                                        <span className="text-[10px] font-bold uppercase tracking-widest">Novo / Manual</span>
-                                    </button>
-                                </div>
-                                <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <div className="relative">
-                                        <input value={editAddressForm.zipCode} onChange={e => handleCepLookup(e.target.value)} placeholder="CEP" className={inputClasses} maxLength={9} />
-                                        {isFetchingCep && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#B8860B]"/>}
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <input value={editAddressForm.street} onChange={e => setEditAddressForm(prev => ({...prev, street: e.target.value}))} placeholder="Rua" className={`${inputClasses} col-span-2`} />
-                                        <input value={editAddressForm.number} onChange={e => setEditAddressForm(prev => ({...prev, number: e.target.value}))} placeholder="Nº" className={inputClasses} />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <input value={editAddressForm.complement} onChange={e => setEditAddressForm(prev => ({...prev, complement: e.target.value}))} placeholder="Comp." className={inputClasses} />
-                                        <input value={editAddressForm.neighborhood} onChange={e => setEditAddressForm(prev => ({...prev, neighborhood: e.target.value}))} placeholder="Bairro" className={inputClasses} />
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <input value={editAddressForm.city} onChange={e => setEditAddressForm(prev => ({...prev, city: e.target.value}))} placeholder="Cidade" className={`${inputClasses} col-span-2`} />
-                                        <input value={editAddressForm.state} onChange={e => setEditAddressForm(prev => ({...prev, state: e.target.value}))} placeholder="UF" maxLength={2} className={`${inputClasses} text-center uppercase`} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 pt-4 border-t border-gray-100">
-                                <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest flex items-center gap-2"><Camera size={14}/> Consentimento por Kit</label>
-                                {Object.entries(groupItemsByKit(editingOrder.items || [])).map(([kitId, items]) => {
-                                    const kitConsent = items[0]?.socialConsent !== undefined ? items[0].socialConsent : !!editingOrder.socialSharingConsent;
-                                    return (
-                                        <div key={kitId} onClick={() => toggleKitConsent(kitId, kitConsent)} className={`p-4 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${kitConsent ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-                                            <div className="flex items-center gap-3">
-                                                {kitConsent ? <CheckCircle size={20} className="text-emerald-500"/> : <Shield size={20} className="text-gray-400"/>}
-                                                <div>
-                                                    <span className={`text-xs font-bold uppercase tracking-widest block ${kitConsent ? 'text-emerald-600' : 'text-gray-500'}`}>{getKitName(items.length)}</span>
-                                                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">{kitConsent ? 'Permitido Publicar' : 'Uso Privado'} • {items.length} fotos</span>
+                                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                        <h4 className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-4 flex items-center gap-2">
+                                            <Activity size={14} className="text-[#B8860B]"/> Detalhes da Transação
+                                        </h4>
+                                        <div className="grid grid-cols-3 gap-6">
+                                            <div>
+                                                <span className="text-[9px] text-gray-400 uppercase tracking-widest block mb-1">Data do Pedido</span>
+                                                <span className="text-sm font-bold text-[#1d1d1f]">{editingOrder.date}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-[9px] text-gray-400 uppercase tracking-widest block mb-1">Horário</span>
+                                                <span className="text-sm font-bold text-[#1d1d1f]">14:32 (Simulado)</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-[9px] text-gray-400 uppercase tracking-widest block mb-1">Pagamento</span>
+                                                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                                                    <CheckCircle size={10} /> Aprovado
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mt-6 pt-6 border-t border-gray-50">
+                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">Histórico de Status</p>
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-3 text-xs text-gray-300">
+                                                    <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                                                    <span>Pedido Criado - {editingOrder.date}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-xs text-[#1d1d1f]">
+                                                    <div className="w-2 h-2 rounded-full bg-[#B8860B]"></div>
+                                                    <span className="font-bold">Status Atual: {getStatusConfig(editingOrder.status).label}</span>
                                                 </div>
                                             </div>
-                                            {kitConsent ? <ToggleRight size={24} className="text-emerald-500"/> : <ToggleLeft size={24} className="text-gray-300"/>}
                                         </div>
-                                    );
-                                })}
-                                {(!editingOrder.items || editingOrder.items.length === 0) && (<div className="p-4 rounded-lg bg-gray-50 border border-gray-200 text-center text-xs text-gray-400">Nenhum kit encontrado neste pedido.</div>)}
-                            </div>
+                                    </div>
+                                </div>
+                            )}
 
-                            <div className="space-y-4 pt-4 border-t border-gray-100">
-                                <label className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest flex items-center gap-2"><Wand2 size={14}/> Edição de Fotos (Por Kit)</label>
-                                {Object.entries(groupItemsByKit(editingOrder.items || [])).map(([kitId, items]) => (
-                                    <button key={kitId} onClick={() => handleOpenAdminStudio(editingOrder.id, kitId)} className="w-full py-4 bg-[#1d1d1f] text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-black shadow-lg transition-all flex items-center justify-center gap-3">
-                                        <Wand2 size={16} /> Editar {getKitName(items.length)} ({items.length} fotos)
-                                    </button>
-                                ))}
-                                <p className="text-[10px] text-center text-gray-400">Clique para abrir o editor exclusivo para o kit selecionado.</p>
-                            </div>
+                            {/* TAB 2: PRODUÇÃO */}
+                            {activeTab === 'production' && (
+                                <div className="space-y-6 animate-fade-in">
+                                    <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                        <div>
+                                            <h4 className="text-sm font-bold text-[#1d1d1f]">Arquivos de Produção</h4>
+                                            <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-0.5">Formato Final: 50x50mm</p>
+                                        </div>
+                                        <button onClick={() => handleDownloadPhotos(editingOrder)} className="px-4 py-2 bg-[#1d1d1f] text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2">
+                                            <Download size={14}/> Baixar Todas (ZIP)
+                                        </button>
+                                    </div>
+
+                                    {Object.entries(groupItemsByKit(editingOrder.items || [])).map(([kitId, items]) => (
+                                        <div key={kitId} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-50">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-1.5 bg-[#F9F9FA] rounded text-[#B8860B]"><Layers size={16}/></div>
+                                                    <div>
+                                                        <h5 className="text-xs font-bold text-[#1d1d1f] uppercase tracking-wider">{getKitName(items.length)}</h5>
+                                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{items.length} fotos • Fine Art</p>
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => handleOpenAdminStudio(editingOrder.id, kitId)} className="text-[10px] font-bold text-[#1d1d1f] border border-[#1d1d1f] px-3 py-1.5 rounded hover:bg-[#1d1d1f] hover:text-white transition-all flex items-center gap-2">
+                                                    <Wand2 size={12}/> Editar Kit
+                                                </button>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                                                {items.map((item, idx) => (
+                                                    <div key={idx} className="aspect-square bg-gray-50 rounded-lg overflow-hidden border border-gray-100 relative group">
+                                                        <img src={item.croppedUrl || item.originalUrl} className="w-full h-full object-cover" />
+                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center cursor-zoom-in" onClick={() => openLightbox(items, idx)}>
+                                                            <ZoomIn size={16} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* TAB 3: LOGÍSTICA */}
+                            {activeTab === 'logistics' && (
+                                <div className="space-y-6 animate-fade-in">
+                                    
+                                    {/* Address Selection */}
+                                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                        <h4 className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-4 flex items-center gap-2"><MapPin size={14} className="text-[#B8860B]"/> Endereço de Entrega</h4>
+                                        
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                                            {editingUserObject?.savedAddresses?.map((addr, i) => {
+                                                const isSelected = activeAddressCardId === addr.id;
+                                                return (
+                                                    <button key={addr.id || i} type="button" onClick={() => handleFillAddress(addr.id || '')} className={`p-3 rounded-xl border text-left transition-all relative group ${isSelected ? 'bg-[#B8860B]/5 border-[#B8860B] ring-1 ring-[#B8860B]/20' : 'bg-[#F9F9FA] border-gray-100 hover:border-gray-300'}`}>
+                                                        {addr.nickname && <span className="text-[9px] font-bold uppercase tracking-widest block mb-1 text-[#B8860B]">{addr.nickname}</span>}
+                                                        <p className="text-xs font-bold text-[#1d1d1f] truncate">{addr.street}, {addr.number}</p>
+                                                        <p className="text-[10px] text-gray-500">{addr.zipCode}</p>
+                                                        {isSelected && <div className="absolute top-2 right-2 text-[#B8860B]"><CheckCircle size={14} /></div>}
+                                                    </button>
+                                                );
+                                            })}
+                                            <button type="button" onClick={() => handleFillAddress('new')} className={`p-3 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-[#B8860B] hover:border-[#B8860B] transition-all bg-white hover:bg-[#F9F9FA] ${activeAddressCardId === 'new' ? 'border-[#B8860B] text-[#B8860B] bg-[#B8860B]/5' : 'border-gray-200'}`}>
+                                                <Plus size={18} />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Novo Manual</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-3 bg-[#F9F9FA] p-4 rounded-xl border border-gray-100">
+                                            <div className="relative">
+                                                <input value={editAddressForm.zipCode} onChange={e => handleCepLookup(e.target.value)} placeholder="CEP" className={inputClasses} maxLength={9} />
+                                                {isFetchingCep && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#B8860B]"/>}
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <input value={editAddressForm.street} onChange={e => setEditAddressForm(prev => ({...prev, street: e.target.value}))} placeholder="Rua" className={`${inputClasses} col-span-2`} />
+                                                <input value={editAddressForm.number} onChange={e => setEditAddressForm(prev => ({...prev, number: e.target.value}))} placeholder="Nº" className={inputClasses} />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <input value={editAddressForm.complement} onChange={e => setEditAddressForm(prev => ({...prev, complement: e.target.value}))} placeholder="Comp." className={inputClasses} />
+                                                <input value={editAddressForm.neighborhood} onChange={e => setEditAddressForm(prev => ({...prev, neighborhood: e.target.value}))} placeholder="Bairro" className={inputClasses} />
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <input value={editAddressForm.city} onChange={e => setEditAddressForm(prev => ({...prev, city: e.target.value}))} placeholder="Cidade" className={`${inputClasses} col-span-2`} />
+                                                <input value={editAddressForm.state} onChange={e => setEditAddressForm(prev => ({...prev, state: e.target.value}))} placeholder="UF" maxLength={2} className={`${inputClasses} text-center uppercase`} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Tracking Info */}
+                                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                        <h4 className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-4 flex items-center gap-2"><Globe size={14} className="text-[#B8860B]"/> Rastreamento</h4>
+                                        <div className="flex gap-3">
+                                            <input 
+                                                type="text" 
+                                                placeholder="Código de Rastreio (Ex: BR123456789BR)" 
+                                                value={trackingCode}
+                                                onChange={(e) => setTrackingCode(e.target.value.toUpperCase())}
+                                                className="flex-1 h-12 px-4 bg-[#F9F9FA] rounded-xl border border-transparent focus:bg-white focus:border-[#B8860B] outline-none transition-all uppercase font-mono tracking-widest placeholder:normal-case placeholder:font-sans placeholder:tracking-normal"
+                                            />
+                                            <button onClick={() => window.open(`https://rastreamento.correios.com.br/app/index.php?objeto=${trackingCode}`, '_blank')} disabled={!trackingCode} className="px-4 bg-[#1d1d1f] text-white rounded-xl hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <MousePointer size={18} />
+                                            </button>
+                                        </div>
+                                        <p className="text-[9px] text-gray-400 mt-2 ml-1">*Ao salvar com código preenchido, o status mudará para "Enviado".</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TAB 4: FINANCEIRO */}
+                            {activeTab === 'financial' && (
+                                <div className="space-y-6 animate-fade-in">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Subtotal</span>
+                                            <span className="text-2xl font-serif font-bold text-[#1d1d1f]">R$ {editingOrder.subtotal?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Frete</span>
+                                            <span className="text-2xl font-serif font-bold text-[#1d1d1f]">R$ {editingOrder.shippingCost?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-2"><Receipt size={16} className="text-gray-200"/></div>
+                                            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">Descontos</span>
+                                            <span className="text-2xl font-serif font-bold text-emerald-600">- R$ {editingOrder.discount?.toFixed(2) || '0.00'}</span>
+                                            {editingOrder.couponCode && <span className="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded mt-2 font-bold uppercase">{editingOrder.couponCode}</span>}
+                                        </div>
+                                        <div className="bg-[#1d1d1f] p-6 rounded-xl shadow-lg flex flex-col items-center justify-center text-center text-white relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-20 h-20 bg-[#B8860B]/20 rounded-full blur-xl"></div>
+                                            <span className="text-[10px] font-bold text-[#B8860B] uppercase tracking-widest mb-2">Total Final</span>
+                                            <span className="text-3xl font-serif font-bold">R$ {editingOrder.total.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                        <h4 className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-4 flex items-center gap-2"><DollarSign size={14}/> Detalhamento Unitário</h4>
+                                        <div className="flex justify-between items-center text-sm p-3 bg-[#F9F9FA] rounded-lg">
+                                            <span className="text-gray-600">Valor Médio por Ímã</span>
+                                            <span className="font-bold text-[#1d1d1f]">R$ {((editingOrder.subtotal || 0) / (editingOrder.itemsCount || 1)).toFixed(2)} / un</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TAB 5: CONSENTIMENTO & TERMOS */}
+                            {activeTab === 'consent' && (
+                                <div className="space-y-6 animate-fade-in">
+                                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                        <h4 className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-4 flex items-center gap-2"><Camera size={14}/> Consentimento Social</h4>
+                                        <p className="text-xs text-gray-500 mb-6 leading-relaxed">Permissão concedida pelo cliente para utilização das imagens produzidas em materiais de divulgação da Magneto.</p>
+                                        
+                                        <div className="space-y-3">
+                                            {Object.entries(groupItemsByKit(editingOrder.items || [])).map(([kitId, items]) => {
+                                                const kitConsent = items[0]?.socialConsent !== undefined ? items[0].socialConsent : !!editingOrder.socialSharingConsent;
+                                                return (
+                                                    <div key={kitId} onClick={() => toggleKitConsent(kitId, kitConsent)} className={`p-4 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${kitConsent ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                                                        <div className="flex items-center gap-3">
+                                                            {kitConsent ? <CheckCircle size={20} className="text-emerald-500"/> : <Shield size={20} className="text-gray-400"/>}
+                                                            <div>
+                                                                <span className={`text-xs font-bold uppercase tracking-widest block ${kitConsent ? 'text-emerald-600' : 'text-gray-500'}`}>{getKitName(items.length)}</span>
+                                                                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">{kitConsent ? 'Permitido Publicar' : 'Uso Privado'} • {items.length} fotos</span>
+                                                            </div>
+                                                        </div>
+                                                        {kitConsent ? <ToggleRight size={24} className="text-emerald-500"/> : <ToggleLeft size={24} className="text-gray-300"/>}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                        <h4 className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-4 flex items-center gap-2"><FileText size={14}/> Registro Legal</h4>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="mt-0.5"><CheckCircle size={16} className="text-[#B8860B]" /></div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-[#1d1d1f]">Termos de Uso Aceitos</p>
+                                                    <p className="text-[10px] text-gray-400">Registrado em {editingOrder.date} via Checkbox no Checkout.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="mt-0.5"><CheckCircle size={16} className="text-[#B8860B]" /></div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-[#1d1d1f]">Política de Privacidade Aceita</p>
+                                                    <p className="text-[10px] text-gray-400">Registrado em {editingOrder.date} via Checkbox no Checkout.</p>
+                                                </div>
+                                            </div>
+                                            <div className="mt-4 p-3 bg-[#F9F9FA] rounded border border-gray-100 text-[10px] font-mono text-gray-500">
+                                                IP: 192.168.1.10 (Simulado) • User Agent: Mozilla/5.0...
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
 
-                        <div className="p-6 border-t border-gray-50 bg-white flex gap-4">
+                        {/* Footer Actions */}
+                        <div className="p-6 border-t border-gray-50 bg-white flex gap-4 sticky bottom-0 z-20">
                             <button onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-gray-200 transition-all">Cancelar</button>
                             <button 
                                 onClick={saveEditOrder} 
@@ -1071,7 +1292,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );
