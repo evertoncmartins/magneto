@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, User as UserIcon, MapPin, Plus, Edit3, Trash2, CheckCircle, Search, Tag, Building, Hash, Map, Navigation, Check, AlertCircle, Shield, Ban, FileText, AlertTriangle } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Loader2, User as UserIcon, MapPin, Plus, Edit3, Trash2, CheckCircle, Search, Tag, Building, Hash, Map, Navigation, Check, AlertCircle, Shield, Ban, FileText, AlertTriangle, Lock } from 'lucide-react';
 import { User, Address } from '../../../types';
 import { addUser, updateUser, deleteUser, getAdminOrders } from '../../../services/mockService';
 
@@ -40,6 +41,9 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
     const [profileData, setProfileData] = useState({ 
         name: '', email: '', isAdmin: false, isActive: true, phone: '', password: ''
     });
+
+    // Identifica se é o usuário raiz (Hardcoded ID ou Email do sistema)
+    const isRootAdmin = editingUser?.id === 'admin-001';
 
     // Address Management State
     const [addresses, setAddresses] = useState<Address[]>([]);
@@ -336,7 +340,7 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
         if (!editingUser) return;
         
         // --- 1. BLOQUEIO ADMIN RAIZ ---
-        if (editingUser.id === 'admin-001') {
+        if (isRootAdmin) {
             setDeleteBlockType('admin');
             return;
         }
@@ -371,6 +375,9 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
     };
 
     const toggleField = (field: 'isAdmin' | 'isActive') => {
+        // Bloqueia remoção de privilégio ou inativação do Admin Root
+        if ((field === 'isAdmin' || field === 'isActive') && isRootAdmin) return;
+
         setProfileData(prev => ({ ...prev, [field]: !prev[field] }));
         setIsDirty(true);
     };
@@ -486,7 +493,12 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
                                         {/* Status Switch */}
                                         <div 
                                             onClick={() => toggleField('isActive')}
-                                            className={`cursor-pointer p-4 rounded-xl border transition-all flex items-center justify-between group ${profileData.isActive ? 'bg-white border-emerald-200 shadow-sm' : 'bg-gray-50 border-gray-200'}`}
+                                            className={`
+                                                p-4 rounded-xl border transition-all flex items-center justify-between group
+                                                ${isRootAdmin ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}
+                                                ${profileData.isActive ? 'bg-white border-emerald-200 shadow-sm' : 'bg-gray-50 border-gray-200'}
+                                            `}
+                                            title={isRootAdmin ? "O status do usuário raiz não pode ser alterado" : ""}
                                         >
                                             <div>
                                                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Status da Conta</p>
@@ -494,31 +506,46 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
                                                     {profileData.isActive ? <><CheckCircle size={14}/> Ativo</> : <><Ban size={14}/> Inativo</>}
                                                 </p>
                                             </div>
-                                            <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${profileData.isActive ? 'bg-emerald-500' : 'bg-gray-300'}`}>
-                                                <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${profileData.isActive ? 'translate-x-4' : 'translate-x-0'}`} />
-                                            </div>
+                                            
+                                            {isRootAdmin ? (
+                                                <Lock size={16} className="text-emerald-500/50" />
+                                            ) : (
+                                                <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${profileData.isActive ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+                                                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${profileData.isActive ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Admin Switch */}
                                         <div 
                                             onClick={() => toggleField('isAdmin')}
-                                            className={`cursor-pointer p-4 rounded-xl border transition-all flex items-center justify-between group ${profileData.isAdmin ? 'bg-[#1d1d1f] border-[#1d1d1f] shadow-lg' : 'bg-white border-gray-200'}`}
+                                            className={`
+                                                p-4 rounded-xl border transition-all flex items-center justify-between group
+                                                ${isRootAdmin ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}
+                                                ${profileData.isAdmin ? 'bg-[#1d1d1f] border-[#1d1d1f] shadow-lg' : 'bg-white border-gray-200'}
+                                            `}
+                                            title={isRootAdmin ? "Privilégio fixo para o usuário raiz" : ""}
                                         >
                                             <div>
                                                 <p className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${profileData.isAdmin ? 'text-gray-400' : 'text-gray-400'}`}>Privilégio</p>
                                                 <p className={`text-xs font-bold flex items-center gap-1.5 ${profileData.isAdmin ? 'text-white' : 'text-[#1d1d1f]'}`}>
-                                                    {profileData.isAdmin ? <><Shield size={14}/> Administrador</> : 'Cliente'}
+                                                    {profileData.isAdmin ? <><Shield size={14}/> {isRootAdmin ? 'Admin (Raiz)' : 'Administrador'}</> : 'Cliente'}
                                                 </p>
                                             </div>
-                                            <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${profileData.isAdmin ? 'bg-[#B8860B]' : 'bg-gray-200'}`}>
-                                                <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${profileData.isAdmin ? 'translate-x-4' : 'translate-x-0'}`} />
-                                            </div>
+                                            
+                                            {isRootAdmin ? (
+                                                <Lock size={16} className="text-white/50" />
+                                            ) : (
+                                                <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${profileData.isAdmin ? 'bg-[#B8860B]' : 'bg-gray-200'}`}>
+                                                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${profileData.isAdmin ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Danger Zone: Delete User */}
-                                {editingUser && (
+                                {editingUser && !isRootAdmin && (
                                     <div className="pt-2">
                                         <button 
                                             type="button"
@@ -730,7 +757,7 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
             </div>
 
             {/* DUPLICATE ADDRESS WARNING MODAL */}
-            {showDuplicateAddressModal && (
+            {showDuplicateAddressModal && createPortal(
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setShowDuplicateAddressModal(false)}></div>
                     <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-6 text-center z-10">
@@ -751,11 +778,12 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
                             Entendido
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* DELETE CONFIRMATION MODAL */}
-            {showDeleteConfirmation && editingUser && (
+            {showDeleteConfirmation && editingUser && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setShowDeleteConfirmation(false)}></div>
                     <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-6 text-center z-10">
@@ -782,11 +810,12 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ERROR MODAL: CANNOT DELETE ADMIN OR USER WITH HISTORY */}
-            {deleteBlockType && (
+            {deleteBlockType && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setDeleteBlockType(null)}></div>
                     <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-6 text-center z-10">
@@ -814,7 +843,8 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
                             Entendido
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
     Quote, Plus, Trash2, Edit3, ToggleLeft, ToggleRight, 
     Settings, Import, Save, X, Star, Upload, Search, CheckCircle, RotateCw, GripVertical, Calendar, Check,
@@ -503,44 +504,46 @@ const AdminLoginTestimonials: React.FC = () => {
                 )}
             </div>
 
-            {/* MODAL EDIT/CREATE - FULL SCREEN */}
-            {isModalOpen && (
+            {/* MODAL EDIT/CREATE - RENDERED AT BODY LEVEL VIA PORTAL */}
+            {isModalOpen && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)}></div>
                     <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden animate-fade-in border border-gray-100 flex flex-col max-h-[90vh] z-10">
-                        <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                            <h3 className="font-serif font-bold text-xl text-[#1d1d1f]">{editingId ? 'Editar Depoimento' : 'Novo Depoimento'}</h3>
-                            <button onClick={() => setIsModalOpen(false)}><X size={20} className="text-gray-400 hover:text-red-500"/></button>
+                        <div className="px-8 py-6 border-b border-gray-100 bg-white">
+                            <div className="flex justify-between items-center">
+                                <h3 className="font-serif font-bold text-2xl text-[#1d1d1f]">{editingId ? 'Editar Depoimento' : 'Novo Depoimento'}</h3>
+                                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={24} className="text-gray-400 hover:text-red-500"/></button>
+                            </div>
                         </div>
                         
-                        <div className="p-8 overflow-y-auto">
-                            <form id="testimonialForm" onSubmit={handleSave} className="space-y-5">
+                        <div className="p-8 overflow-y-auto custom-scrollbar">
+                            <form id="testimonialForm" onSubmit={handleSave} className="space-y-6">
                                 <div>
-                                    <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1 block">Depoimento</label>
+                                    <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1.5 block">Depoimento</label>
                                     <textarea 
                                         required
-                                        rows={3}
-                                        className="w-full p-3 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] resize-none"
+                                        rows={4}
+                                        className="w-full p-4 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] transition-all resize-none"
                                         placeholder="O texto do depoimento..."
                                         value={formData.quote}
                                         onChange={e => setFormData({...formData, quote: e.target.value})}
                                     />
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1 block">Autor</label>
+                                        <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1.5 block">Autor</label>
                                         <input 
                                             required
-                                            className="w-full h-10 px-3 bg-[#F5F5F7] border border-transparent rounded-lg text-sm outline-none focus:bg-white focus:border-[#B8860B]"
+                                            className="w-full h-11 px-4 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] transition-all"
                                             value={formData.author}
                                             onChange={e => setFormData({...formData, author: e.target.value})}
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1 block">Cargo / Local</label>
+                                        <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1.5 block">Cargo / Local</label>
                                         <input 
                                             required
-                                            className="w-full h-10 px-3 bg-[#F5F5F7] border border-transparent rounded-lg text-sm outline-none focus:bg-white focus:border-[#B8860B]"
+                                            className="w-full h-11 px-4 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] transition-all"
                                             placeholder="Ex: Designer • SP"
                                             value={formData.role}
                                             onChange={e => setFormData({...formData, role: e.target.value})}
@@ -549,41 +552,51 @@ const AdminLoginTestimonials: React.FC = () => {
                                 </div>
                                 
                                 <div>
-                                    <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1 block">Imagem de Fundo (URL)</label>
-                                    <input 
-                                        required
-                                        className="w-full h-10 px-3 bg-[#F5F5F7] border border-transparent rounded-lg text-sm outline-none focus:bg-white focus:border-[#B8860B]"
-                                        placeholder="https://..."
-                                        value={formData.bgImage}
-                                        onChange={e => setFormData({...formData, bgImage: e.target.value})}
-                                    />
-                                    <p className="text-[9px] text-gray-400 mt-1">Recomendado: Imagens escuras ou com filtro para contraste.</p>
+                                    <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1.5 block">Imagem de Fundo (URL)</label>
+                                    <div className="flex gap-4">
+                                        <input 
+                                            required
+                                            className="flex-1 h-11 px-4 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] transition-all"
+                                            placeholder="https://..."
+                                            value={formData.bgImage}
+                                            onChange={e => setFormData({...formData, bgImage: e.target.value})}
+                                        />
+                                        <div className="w-11 h-11 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
+                                            <img src={formData.bgImage} className="w-full h-full object-cover" onError={(e) => e.currentTarget.src=''} />
+                                        </div>
+                                    </div>
+                                    <p className="text-[9px] text-gray-400 mt-1.5 font-medium px-1">Recomendado: Imagens escuras ou com filtro para contraste.</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1 block">Foto do Autor (URL)</label>
-                                        <input 
-                                            className="w-full h-10 px-3 bg-[#F5F5F7] border border-transparent rounded-lg text-sm outline-none focus:bg-white focus:border-[#B8860B]"
-                                            placeholder="https://..."
-                                            value={formData.avatar}
-                                            onChange={e => setFormData({...formData, avatar: e.target.value})}
-                                        />
+                                        <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1.5 block">Foto do Autor (URL)</label>
+                                        <div className="flex gap-4">
+                                            <input 
+                                                className="flex-1 h-11 px-4 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] transition-all"
+                                                placeholder="https://..."
+                                                value={formData.avatar}
+                                                onChange={e => setFormData({...formData, avatar: e.target.value})}
+                                            />
+                                            <div className="w-11 h-11 rounded-full bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
+                                                <img src={formData.avatar} className="w-full h-full object-cover" onError={(e) => e.currentTarget.src=''} />
+                                            </div>
+                                        </div>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-1 block">Avaliação</label>
-                                        <div className="flex gap-1 sm:gap-2">
+                                        <label className="text-[10px] font-bold text-[#86868b] uppercase px-1 mb-2 block">Avaliação</label>
+                                        <div className="flex gap-1">
                                             {[1, 2, 3, 4, 5].map((star) => (
                                                 <button
                                                     key={star}
                                                     type="button"
                                                     onClick={() => setFormData({ ...formData, rating: star })}
-                                                    className="p-1 transition-transform hover:scale-110 focus:outline-none"
+                                                    className="p-1 transition-transform hover:scale-110 active:scale-95 focus:outline-none"
                                                 >
                                                     <Star
-                                                        size={24}
+                                                        size={22}
                                                         fill={star <= formData.rating ? "#B8860B" : "none"}
-                                                        className={star <= formData.rating ? "text-[#B8860B]" : "text-gray-300"}
+                                                        className={star <= formData.rating ? "text-[#B8860B]" : "text-gray-200"}
                                                         strokeWidth={star <= formData.rating ? 0 : 1.5}
                                                     />
                                                 </button>
@@ -592,20 +605,23 @@ const AdminLoginTestimonials: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div onClick={() => setFormData({...formData, isActive: !formData.isActive})} className={`cursor-pointer p-4 rounded-lg border transition-all flex items-center justify-between ${formData.isActive ? 'bg-[#1d1d1f] text-white border-[#1d1d1f]' : 'bg-white border-gray-200'}`}>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest">Status Ativo</span>
-                                    {formData.isActive ? <ToggleRight size={22} className="text-[#B8860B]"/> : <ToggleLeft size={22} className="text-gray-300"/>}
+                                <div 
+                                    onClick={() => setFormData({...formData, isActive: !formData.isActive})} 
+                                    className={`cursor-pointer p-4 rounded-xl border transition-all flex items-center justify-between ${formData.isActive ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-lg' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                                >
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Depoimento Ativo</span>
+                                    {formData.isActive ? <ToggleRight size={26} className="text-[#B8860B]"/> : <ToggleLeft size={26} className="text-gray-300"/>}
                                 </div>
                             </form>
                         </div>
 
-                        <div className="p-6 border-t border-gray-100 bg-white flex gap-4">
-                            <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-gray-200 transition-all">Cancelar</button>
+                        <div className="p-6 border-t border-gray-100 bg-white flex gap-4 shrink-0">
+                            <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-gray-50 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-100 transition-all border border-gray-100">Cancelar</button>
                             <button 
                                 type="submit" 
                                 form="testimonialForm" 
                                 disabled={!!editingId && !isDirty}
-                                className={`flex-1 py-3 font-bold text-[10px] uppercase tracking-widest rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 ${
+                                className={`flex-1 py-4 font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-xl flex items-center justify-center gap-2 ${
                                     (!!editingId && !isDirty) 
                                     ? 'bg-gray-100 text-gray-400 cursor-default shadow-none' 
                                     : 'bg-[#1d1d1f] text-white hover:bg-black'
@@ -614,12 +630,13 @@ const AdminLoginTestimonials: React.FC = () => {
                                 {(!!editingId && !isDirty) ? (
                                     <><Check size={16}/> Salvo</>
                                 ) : (
-                                    <><Save size={16}/> Salvar</>
+                                    <><Save size={16}/> {editingId ? 'Salvar Alterações' : 'Criar Depoimento'}</>
                                 )}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );

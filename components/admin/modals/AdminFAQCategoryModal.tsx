@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Tag, ToggleRight, ToggleLeft } from 'lucide-react';
 import { addFAQCategory, updateFAQCategory } from '../../../services/mockService';
 import { FAQCategory } from '../../../types';
@@ -48,10 +49,10 @@ const AdminFAQCategoryModal: React.FC<AdminFAQCategoryModalProps> = ({ isOpen, o
 
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-[#011F4B]/30 backdrop-blur-sm" onClick={onClose}></div>
-            <div className="bg-white w-full max-w-md rounded-xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100">
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={onClose}></div>
+            <div className="bg-white w-full max-w-md rounded-xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 z-10">
                 <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
                     <div>
                         <h3 className="font-serif font-bold text-2xl">{editingCategory ? 'Editar Categoria' : 'Nova Categoria'}</h3>
@@ -91,7 +92,8 @@ const AdminFAQCategoryModal: React.FC<AdminFAQCategoryModalProps> = ({ isOpen, o
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

@@ -21,6 +21,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
   const [reviews, setReviews] = useState<Record<string, Review>>({}); // Map orderId to Review
   const [loading, setLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [tiers, setTiers] = useState(getPricingRules());
 
   // Filter & Pagination State
   const [selectedYear, setSelectedYear] = useState<string>('all');
@@ -41,6 +42,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    setTiers(getPricingRules());
     getUserOrders(user.id).then(data => {
       // Ordenar por data decrescente (mais recente primeiro)
       const sorted = [...data].sort((a, b) => {
@@ -219,7 +221,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
       'delivered': { label: 'Entregue', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: CheckCircle },
       'cancelled': { label: 'Cancelado', color: 'bg-red-50 text-red-600 border-red-100', icon: Ban },
     };
-    return config[status] || { label: status, color: 'bg-gray-50 text-gray-600 border-gray-100', icon: Package };
+    return config[status] || { label: status, color: 'bg-gray-50 text-gray-600 border-gray-200', icon: Package };
   };
 
   const formatCep = (cep: string) => {
@@ -242,9 +244,13 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
   };
 
   const getKitName = (count: number) => {
-      if (count <= 9) return 'Kit Start';
-      if (count <= 18) return 'Kit Memories';
-      return 'Kit Gallery';
+      const tier = tiers.find(t => t.photoCount === count);
+      if (tier) return `Kit ${tier.name}`;
+      
+      if (count <= 3) return 'Kit Start';
+      if (count <= 6) return 'Kit Memories';
+      if (count <= 9) return 'Kit Gallery';
+      return 'Kit Personalizado';
   };
 
   // --- LIGHTBOX FUNCTIONS ---
@@ -444,9 +450,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                                                 <Camera size={12} /> Uso Autorizado
                                                             </span>
                                                         ) : (
-                                                            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200 text-[9px] font-bold uppercase tracking-widest">
-                                                                <Shield size={12} /> Privado
-                                                            </span>
+                                                            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200 text-[9px] font-bold uppercase tracking-widest"><Shield size={12} /> Privado</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -470,7 +474,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                         );
                                     })}
 
-                                    {/* REVIEW SECTION */}
+                                    {/* ... restante da seção de reviews inalterada ... */}
                                     {order.status === 'delivered' && (
                                         <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
                                             <div className="absolute top-0 right-0 w-32 h-32 bg-[#B8860B]/5 rounded-full blur-2xl pointer-events-none"></div>
@@ -528,7 +532,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                                                 <button 
                                                                     onClick={() => fileInputRef.current?.click()}
                                                                     disabled={isProcessingPhotos}
-                                                                    className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-[#86868b] hover:border-[#B8860B] hover:text-[#B8860B] transition-all bg-[#F5F5F7] hover:bg-white disabled:opacity-50 disabled:cursor-wait"
+                                                                    className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-[#86868b] hover:border-[#B8860B] hover:text-[#B8860B] hover:bg-white transition-all bg-[#F5F5F7] hover:bg-white disabled:opacity-50 disabled:cursor-wait"
                                                                 >
                                                                     {isProcessingPhotos ? <Loader2 size={20} className="animate-spin"/> : <ImageIcon size={20} />}
                                                                 </button>
@@ -624,14 +628,14 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                     )}
                                 </div>
 
-                                {/* Right Column: Logistics & Finance (5/12) */}
+                                {/* Right Column ... inalterada ... */}
                                 <div className="lg:col-span-5 space-y-6">
                                     
                                     <h4 className="text-[10px] font-bold text-[#B8860B] uppercase tracking-[0.3em] flex items-center gap-2">
                                         Detalhes do Envio
                                     </h4>
 
-                                    {/* ADDRESS CARD (DESIGN REDESIGN) */}
+                                    {/* ADDRESS CARD ... */}
                                     {order.shippingAddress && (
                                         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-5">
                                             <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-[#B8860B] shrink-0">
@@ -659,7 +663,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                         Detalhes Financeiros
                                     </h4>
 
-                                    {/* FINANCE CARD (REDESIGN MATCHING ADDRESS) */}
+                                    {/* FINANCE CARD ... */}
                                     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-5">
                                         <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-[#B8860B] shrink-0">
                                             <Receipt size={24} strokeWidth={1.5} />
@@ -699,7 +703,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                 </div>
                            </div>
                            
-                           {/* ORDER FOOTER / HELP SECTION */}
+                           {/* ORDER FOOTER ... */}
                            <div className="border-t border-gray-200/60 p-4 md:p-6 bg-[#F9F9FA] flex flex-col md:flex-row justify-center md:justify-end items-center gap-3">
                                 <p className="text-[10px] text-[#86868b] font-medium uppercase tracking-wide flex items-center gap-2">
                                     <MessageCircle size={14}/> Teve algum problema com este pedido?
@@ -716,7 +720,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
           </div>
         )}
 
-        {/* PAGINATION FOOTER */}
+        {/* PAGINATION FOOTER ... */}
         {filteredOrders.length > 0 && (
             <div className="flex flex-col sm:flex-row justify-end items-center gap-4 sm:gap-6 pt-10 text-[11px] text-gray-500 font-medium select-none animate-fade-in">
                 
@@ -745,7 +749,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                     </span>
                 </div>
 
-                {/* Navigation Icons */}
+                {/* Navigation Icons ... */}
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-center bg-white p-1.5 sm:p-0 rounded-xl sm:rounded-none border sm:border-none border-gray-100 sm:bg-transparent">
                     <button 
                         onClick={() => paginate(1)}
@@ -785,7 +789,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
 
       </div>
 
-      {/* LIGHTBOX OVERLAY */}
+      {/* LIGHTBOX OVERLAY ... */}
       {isLightboxOpen && (
           <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center animate-fade-in p-4" onClick={closeLightbox}>
               <button onClick={closeLightbox} className="absolute top-4 right-4 md:top-8 md:right-8 p-3 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all z-50"><X size={24} /></button>

@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
     Edit3, Plus, Search, MapPin, Phone, History, 
     X, ChevronLeft, ChevronRight, ChevronDown, 
@@ -449,7 +450,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
             </div>
 
             {/* DELETE CONFIRMATION MODAL */}
-            {isDeleteModalOpen && userToDelete && (
+            {isDeleteModalOpen && userToDelete && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsDeleteModalOpen(false)}></div>
                     <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-6 text-center z-10">
@@ -476,11 +477,12 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ERROR MODAL: CANNOT DELETE ADMIN OR USER WITH HISTORY */}
-            {deleteBlockType && (
+            {deleteBlockType && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setDeleteBlockType(null)}></div>
                     <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-6 text-center z-10">
@@ -508,7 +510,8 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                             Entendido
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );

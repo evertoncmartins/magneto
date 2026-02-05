@@ -8,8 +8,10 @@ import {
     ChevronsLeft, ChevronsRight, Ban, AlertOctagon, XCircle, RotateCcw, Check, Save, FileText, DollarSign, Activity
 } from 'lucide-react';
 import { Order, MagnetItem, User, Address } from '../../types';
-import { updateOrderStatus, softDeleteOrder, restoreOrder, updateOrderDetails, getUsers } from '../../services/mockService';
+import { updateOrderStatus, softDeleteOrder, restoreOrder, updateOrderDetails, getUsers, getImageFromDB, getPricingRules } from '../../services/mockService';
 import { useNavigate } from 'react-router-dom';
+// @ts-ignore
+import JSZip from 'jszip';
 
 const STATUS_STEPS = ['pending', 'production', 'shipped', 'delivered'];
 
@@ -74,6 +76,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
     const navigate = useNavigate();
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
     const [downloadingOrderId, setDownloadingOrderId] = useState<string | null>(null);
+    const [zipProgress, setZipProgress] = useState(0);
+    const [tiers, setTiers] = useState(getPricingRules());
     
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -93,6 +97,10 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
     // Revert Modal State
     const [isRevertModalOpen, setIsRevertModalOpen] = useState(false);
     const [orderToRevert, setOrderToRevert] = useState<Order | null>(null);
+
+    // Delete Modal State
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
 
     // User Search inside Modal
     const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -117,6 +125,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
 
     useEffect(() => {
         setAllUsers(getUsers());
+        setTiers(getPricingRules());
     }, []);
 
     // Sync Search Term and Address when editing order changes
@@ -141,7 +150,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
             // Reset tab
             setActiveTab('summary');
         }
-    }, [isEditModalOpen, editingOrder?.id]);
+    }, [isEditModalOpen, editingOrder?.id, allUsers]);
 
     // Reset pagination when filters change
     useEffect(() => {
@@ -290,29 +299,93 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
         refreshData();
     };
 
-    const handleDownloadPhotos = async (order: Order) => {
-        if (!order.items || order.items.length === 0) return alert("Sem fotos disponíveis.");
-        setDownloadingOrderId(order.id);
+    const handleDownloadPhotos = async (order: Order, kitId?: string, itemsToDownload?: MagnetItem[]) => {
+        const items = itemsToDownload || order.items || [];
+        if (items.length === 0) return alert("Sem fotos disponíveis.");
         
-        setTimeout(() => {
-            order.items?.forEach((item, i) => {
-                const link = document.createElement('a');
-                link.href = item.highResUrl || item.croppedUrl;
-                link.download = `Pedido-${order.id}-Foto-${i+1}.jpg`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+        // Identificador único para o estado de download (Pedido-Kit ou apenas Pedido)
+        const downloadId = kitId ? `${order.id}-${kitId}` : order.id;
+        setDownloadingOrderId(downloadId);
+        setZipProgress(0);
+        
+        const zip = new JSZip();
+        const kitLabel = kitId ? `Kit-${getKitName(items.length).replace(/\s+/g, '-')}` : 'Total';
+        const folderName = `Pedido-${order.id}-${order.customerName.replace(/\s+/g, '-')}-${kitLabel}`;
+        const folder = zip.folder(folderName);
+
+        try {
+            const totalItems = items.length;
+            
+            for (let i = 0; i < totalItems; i++) {
+                const item = items[i];
+                let imageContent: any = null;
+
+                // 1. Tenta buscar do IndexedDB (Alta resolução salva localmente)
+                try {
+                    const dbBlob = await getImageFromDB(item.id + '_print');
+                    if (dbBlob) imageContent = dbBlob;
+                    else {
+                        const originalBlob = await getImageFromDB(item.id);
+                        if (originalBlob) imageContent = originalBlob;
+                    }
+                } catch (e) { console.warn("DB fetch failed", e); }
+
+                // 2. Fallback para URL de display se não houver no DB
+                if (!imageContent) {
+                    const url = item.croppedUrl || item.highResUrl || item.originalUrl;
+                    if (url) {
+                        try {
+                            const response = await fetch(url);
+                            imageContent = await response.blob();
+                        } catch (e) { console.error("URL fetch failed", e); }
+                    }
+                }
+
+                if (imageContent) {
+                    const fileName = `Foto-${i + 1}.jpg`;
+                    folder?.file(fileName, imageContent);
+                }
+
+                // Atualiza progresso
+                setZipProgress(Math.round(((i + 1) / totalItems) * 50));
+            }
+
+            // Gera o ZIP
+            const content = await zip.generateAsync({ type: "blob" }, (metadata) => {
+                setZipProgress(50 + Math.round(metadata.percent / 2));
             });
+
+            // Dispara o download
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `${folderName}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+
+        } catch (error) {
+            console.error("ZIP Generation error", error);
+            alert("Erro ao gerar arquivo ZIP.");
+        } finally {
             setDownloadingOrderId(null);
-        }, 1500);
+            setZipProgress(0);
+        }
     };
 
     // --- ADMIN ACTIONS ---
     const handleSoftDelete = (e: React.MouseEvent, order: Order) => {
         e.stopPropagation();
-        if (window.confirm("Deseja mover este pedido para a lixeira? O cliente deixará de vê-lo.")) {
-            softDeleteOrder(order.id);
+        setOrderToDelete(order);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (orderToDelete) {
+            softDeleteOrder(orderToDelete.id);
             refreshData();
+            setIsDeleteModalOpen(false);
+            setOrderToDelete(null);
         }
     };
 
@@ -442,9 +515,14 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
     };
 
     const getKitName = (count: number) => {
-        if (count <= 9) return 'Kit Start';
-        if (count <= 18) return 'Kit Memories';
-        return 'Kit Gallery';
+        const tier = tiers.find(t => t.photoCount === count);
+        if (tier) return `Kit ${tier.name}`;
+        
+        // Fallback robusto baseado nos intervalos
+        if (count <= 3) return 'Kit Start';
+        if (count <= 6) return 'Kit Memories';
+        if (count <= 9) return 'Kit Gallery';
+        return 'Kit Personalizado';
     };
 
     // --- LIGHTBOX HANDLERS ---
@@ -521,7 +599,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
             <div className="animate-fade-in space-y-6">
                 
                 {/* CONTROLS BAR: Search & Date */}
-                {/* ... (Existing Controls Bar & Filter Tabs Logic) ... */}
                 <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
                     {/* Search */}
                     <div className="relative w-full md:flex-1 group">
@@ -604,7 +681,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                     ${isPendingAlert 
                                         ? 'bg-[#B8860B] text-white shadow-sm' 
                                         : isCancelled && isActive
-                                            ? 'bg-red-500 text-white'
+                                            ? 'bg-red-50 text-white'
                                             : isActive 
                                                 ? 'bg-white/20 text-white' 
                                                 : isCancelled
@@ -834,18 +911,37 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                 </div>
                                             </div>
 
-                                            <button onClick={() => handleDownloadPhotos(order)} disabled={!!downloadingOrderId} className="w-full py-4 bg-[#1d1d1f] text-white rounded-lg font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed mb-10">
-                                                {downloadingOrderId === order.id ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Baixar Arquivos
+                                            <button 
+                                                onClick={() => handleDownloadPhotos(order)} 
+                                                disabled={!!downloadingOrderId} 
+                                                className="w-full py-4 bg-gray-50 text-gray-500 rounded-lg font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-gray-100 transition-all border border-gray-200 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed mb-10 relative overflow-hidden"
+                                            >
+                                                {downloadingOrderId === order.id ? (
+                                                    <div className="flex items-center gap-3 z-10">
+                                                        <Loader2 size={16} className="animate-spin" /> 
+                                                        Compactando Tudo... {zipProgress}%
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-3 z-10"><Download size={16} /> Baixar Pedido Completo (ZIP)</div>
+                                                )}
+                                                {downloadingOrderId === order.id && (
+                                                    <div 
+                                                        className="absolute inset-0 bg-[#B8860B]/10 transition-all duration-300" 
+                                                        style={{ width: `${zipProgress}%` }}
+                                                    ></div>
+                                                )}
                                             </button>
 
                                             {/* Items List */}
                                             {order.items && order.items.length > 0 && (
                                                 <div className="space-y-8">
                                                     <h4 className="text-[10px] font-bold text-[#B8860B] uppercase tracking-widest border-b border-gray-100 pb-2">Itens Separados por Kit</h4>
-                                                    {Object.entries(groupedItems).map(([kitId, kitItems]) => {
+                                                    {Object.entries(groupItemsByKit(order.items || [])).map(([kitId, kitItems]) => {
                                                         const consent = kitItems[0].socialConsent !== undefined ? kitItems[0].socialConsent : order.socialSharingConsent;
+                                                        const isKitDownloading = downloadingOrderId === `${order.id}-${kitId}`;
+
                                                         return (
-                                                            <div key={kitId} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                                                            <div key={kitId} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm relative overflow-hidden">
                                                                 <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
                                                                     <div className="flex items-center gap-3">
                                                                         <div className="p-1.5 bg-[#F5F5F7] rounded-md text-[#B8860B]"><Layers size={14} /></div>
@@ -854,12 +950,21 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                                             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{kitItems.length} fotos</p>
                                                                         </div>
                                                                     </div>
-                                                                    <div>
+                                                                    <div className="flex items-center gap-3">
                                                                         {consent ? (
                                                                             <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm text-[9px] font-bold uppercase tracking-widest"><Camera size={12} /> Uso Autorizado</span>
                                                                         ) : (
                                                                             <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200 text-[9px] font-bold uppercase tracking-widest"><Shield size={12} /> Privado</span>
                                                                         )}
+                                                                        
+                                                                        <button 
+                                                                            onClick={() => handleDownloadPhotos(order, kitId, kitItems)}
+                                                                            disabled={!!downloadingOrderId}
+                                                                            className={`p-2 rounded-lg transition-all border ${isKitDownloading ? 'bg-[#1d1d1f] text-white border-[#1d1d1f]' : 'bg-white text-[#1d1d1f] border-gray-200 hover:bg-[#1d1d1f] hover:text-white shadow-sm'} disabled:opacity-50`}
+                                                                            title="Baixar fotos deste kit"
+                                                                        >
+                                                                            {isKitDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                                                                        </button>
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex gap-3 overflow-x-auto pb-2 md:flex-wrap md:overflow-visible md:pb-0 scrollbar-hide">
@@ -870,6 +975,13 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                                         </div>
                                                                     ))}
                                                                 </div>
+                                                                
+                                                                {isKitDownloading && (
+                                                                    <div 
+                                                                        className="absolute bottom-0 left-0 h-1 bg-[#B8860B] transition-all duration-300" 
+                                                                        style={{ width: `${zipProgress}%` }}
+                                                                    ></div>
+                                                                )}
                                                             </div>
                                                         );
                                                     })}
@@ -933,6 +1045,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 document.body
             )}
 
+            {/* ... restante dos modais inalterado ... */}
             {isRevertModalOpen && orderToRevert && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsRevertModalOpen(false)}></div>
@@ -943,6 +1056,37 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                         <div className="flex gap-3">
                             <button onClick={() => setIsRevertModalOpen(false)} className="flex-1 py-4 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all">Voltar</button>
                             <button onClick={confirmRevert} className="flex-1 py-4 bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200">Confirmar Restauração</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {isDeleteModalOpen && orderToDelete && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsDeleteModalOpen(false)}></div>
+                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-8 text-center z-10">
+                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Trash2 size={32} />
+                        </div>
+                        <h3 className="font-serif font-bold text-2xl text-[#1d1d1f] mb-2">Excluir Pedido?</h3>
+                        <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+                            Tem certeza que deseja mover o pedido <strong>#{orderToDelete.id}</strong> para a lixeira? <br/>
+                            O cliente deixará de vê-lo em seu histórico.
+                        </p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                className="flex-1 py-4 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={confirmDelete}
+                                className="flex-1 py-4 bg-red-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all shadow-lg shadow-red-200"
+                            >
+                                Sim, Excluir
+                            </button>
                         </div>
                     </div>
                 </div>,
@@ -965,7 +1109,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
             {/* EDIT ORDER MODAL - TABBED INTERFACE */}
             {isEditModalOpen && editingOrder && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
+                    <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsEditModalOpen(false)}></div>
                     <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 max-h-[90vh]">
                         {/* Header */}
                         <div className="px-8 py-6 border-b border-gray-100 bg-white sticky top-0 z-20">
@@ -1073,38 +1217,64 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                             <h4 className="text-sm font-bold text-[#1d1d1f]">Arquivos de Produção</h4>
                                             <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-0.5">Formato Final: 50x50mm</p>
                                         </div>
-                                        <button onClick={() => handleDownloadPhotos(editingOrder)} className="px-4 py-2 bg-[#1d1d1f] text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2">
-                                            <Download size={14}/> Baixar Todas (ZIP)
+                                        <button onClick={() => handleDownloadPhotos(editingOrder)} disabled={!!downloadingOrderId} className="px-4 py-2 bg-gray-50 text-gray-600 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all flex items-center gap-2 relative overflow-hidden border border-gray-200">
+                                            {downloadingOrderId === editingOrder.id ? (
+                                                <div className="flex items-center gap-2 z-10">
+                                                    <Loader2 size={14} className="animate-spin"/> Compactando... {zipProgress}%
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 z-10"><Download size={14}/> Baixar Tudo (ZIP)</div>
+                                            )}
                                         </button>
                                     </div>
 
-                                    {Object.entries(groupItemsByKit(editingOrder.items || [])).map(([kitId, items]) => (
-                                        <div key={kitId} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                                            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-50">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-1.5 bg-[#F9F9FA] rounded text-[#B8860B]"><Layers size={16}/></div>
-                                                    <div>
-                                                        <h5 className="text-xs font-bold text-[#1d1d1f] uppercase tracking-wider">{getKitName(items.length)}</h5>
-                                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{items.length} fotos • Fine Art</p>
-                                                    </div>
-                                                </div>
-                                                <button onClick={() => handleOpenAdminStudio(editingOrder.id, kitId)} className="text-[10px] font-bold text-[#1d1d1f] border border-[#1d1d1f] px-3 py-1.5 rounded hover:bg-[#1d1d1f] hover:text-white transition-all flex items-center gap-2">
-                                                    <Wand2 size={12}/> Editar Kit
-                                                </button>
-                                            </div>
-                                            
-                                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                                                {items.map((item, idx) => (
-                                                    <div key={idx} className="aspect-square bg-gray-50 rounded-lg overflow-hidden border border-gray-100 relative group">
-                                                        <img src={item.croppedUrl || item.originalUrl} className="w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center cursor-zoom-in" onClick={() => openLightbox(items, idx)}>
-                                                            <ZoomIn size={16} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    {Object.entries(groupItemsByKit(editingOrder.items || [])).map(([kitId, items]) => {
+                                        const isKitDownloading = downloadingOrderId === `${editingOrder.id}-${kitId}`;
+                                        return (
+                                            <div key={kitId} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm relative overflow-hidden">
+                                                <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-50">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-1.5 bg-[#F9F9FA] rounded text-[#B8860B]"><Layers size={16}/></div>
+                                                        <div>
+                                                            <h5 className="text-xs font-bold text-[#1d1d1f] uppercase tracking-wider">{getKitName(items.length)}</h5>
+                                                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{items.length} fotos • Fine Art</p>
                                                         </div>
                                                     </div>
-                                                ))}
+                                                    <div className="flex gap-2">
+                                                        <button 
+                                                            onClick={() => handleDownloadPhotos(editingOrder, kitId, items)}
+                                                            disabled={!!downloadingOrderId}
+                                                            className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 border ${isKitDownloading ? 'bg-[#1d1d1f] text-white border-[#1d1d1f]' : 'bg-white text-[#1d1d1f] border-gray-200 hover:bg-[#1d1d1f] hover:text-white'}`}
+                                                        >
+                                                            {isKitDownloading ? <Loader2 size={12} className="animate-spin" /> : <Download size={12}/>} 
+                                                            {isKitDownloading ? `${zipProgress}%` : 'Baixar Kit'}
+                                                        </button>
+                                                        <button onClick={() => handleOpenAdminStudio(editingOrder.id, kitId)} className="text-[10px] font-bold text-[#1d1d1f] border border-[#1d1d1f] px-3 py-1.5 rounded hover:bg-[#1d1d1f] hover:text-white transition-all flex items-center gap-2">
+                                                            <Wand2 size={12}/> Editar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                                                    {items.map((item, idx) => (
+                                                        <div key={idx} className="aspect-square bg-gray-50 rounded-lg overflow-hidden border border-gray-100 relative group">
+                                                            <img src={item.croppedUrl || item.originalUrl} className="w-full h-full object-cover" />
+                                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center cursor-zoom-in" onClick={() => openLightbox(items, idx)}>
+                                                                <ZoomIn size={16} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {isKitDownloading && (
+                                                    <div 
+                                                        className="absolute bottom-0 left-0 h-1 bg-[#B8860B] transition-all duration-300" 
+                                                        style={{ width: `${zipProgress}%` }}
+                                                    ></div>
+                                                )}
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
 
@@ -1233,9 +1403,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                     <p className="text-xs font-bold text-[#1d1d1f]">Política de Privacidade Aceita</p>
                                                     <p className="text-[10px] text-gray-400">Registrado em {editingOrder.date} via Checkbox no Checkout.</p>
                                                 </div>
-                                            </div>
-                                            <div className="mt-4 p-3 bg-[#F9F9FA] rounded border border-gray-100 text-[10px] font-mono text-gray-500">
-                                                IP: 192.168.1.10 (Simulado) • User Agent: Mozilla/5.0...
                                             </div>
                                         </div>
                                     </div>

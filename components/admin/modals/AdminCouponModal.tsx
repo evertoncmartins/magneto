@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Ticket, ToggleLeft, ToggleRight } from 'lucide-react';
 import { addCoupon, updateCoupon, removeCoupon } from '../../../services/mockService';
 import { Coupon } from '../../../types';
@@ -80,18 +81,18 @@ const AdminCouponModal: React.FC<AdminCouponModalProps> = ({ isOpen, onClose, re
 
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-[#011F4B]/30 backdrop-blur-sm" onClick={onClose}></div>
-            <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100">
-                <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+    return createPortal(
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-[#1d1d1f]/40 backdrop-blur-md" onClick={onClose}></div>
+            <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 max-h-[85vh]">
+                <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
                     <div>
                         <h3 className="font-serif font-bold text-2xl">{editingCoupon ? 'Editar Campanha' : 'Lançar Campanha'}</h3>
                         <p className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mt-1">Configuração de Desconto</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={24} /></button>
                 </div>
-                <div className="p-8 overflow-y-auto">
+                <div className="p-8 overflow-y-auto scrollbar-hide">
                     <form id="couponForm" onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold text-[#86868b] uppercase px-1">Código Promocional</label>
@@ -106,7 +107,7 @@ const AdminCouponModal: React.FC<AdminCouponModalProps> = ({ isOpen, onClose, re
                                 />
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-[#86868b] uppercase px-1">Valor do Desconto</label>
                                 <input required type="number" value={couponFormData.value} onChange={e => setCouponFormData({...couponFormData, value: e.target.value})} className="w-full px-4 py-3 bg-[#F5F5F7] rounded-lg text-sm outline-none border border-transparent focus:bg-white focus:border-[#B8860B] transition-all" />
@@ -137,14 +138,15 @@ const AdminCouponModal: React.FC<AdminCouponModalProps> = ({ isOpen, onClose, re
                         </div>
                     </form>
                 </div>
-                <div className="p-6 border-t border-gray-100 bg-white flex gap-4">
+                <div className="p-6 border-t border-gray-100 bg-white flex gap-4 shrink-0">
                     <button onClick={onClose} className="flex-1 py-4 bg-gray-50 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-gray-100 transition-all">Cancelar</button>
                     <button type="submit" form="couponForm" className="flex-1 py-4 bg-[#1d1d1f] text-white font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-black transition-all shadow-xl">
                         {editingCoupon ? 'Atualizar Cupom' : 'Criar Cupom'}
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, LoginTestimonial } from '../types';
 import { loginUser, registerUser, loginWithGoogle, getLoginTestimonials, getLoginTestimonialConfig } from '../services/mockService';
-import { ArrowRight, Loader2, LayoutGrid, Mail, Lock, User as UserIcon, Eye, EyeOff, Star, ChevronLeft } from 'lucide-react';
+import { ArrowRight, Loader2, LayoutGrid, Mail, Lock, User as UserIcon, Eye, EyeOff, Star, ChevronLeft, Phone, AlertCircle } from 'lucide-react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 
 interface AuthProps {
@@ -18,6 +18,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login', user }) => 
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
   // Testimonial State
@@ -76,20 +78,84 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login', user }) => 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: ''
+    password: '',
+    phone: ''
   });
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const formatted = value
+        .replace(/\D/g, '') // Remove não dígitos
+        .replace(/^(\d{2})(\d)/g, '($1) $2') // Coloca parênteses
+        .replace(/(\d)(\d{4})$/, '$1-$2') // Coloca hífen
+        .slice(0, 15); // Limita tamanho
+    
+    setFormData(prev => ({ ...prev, phone: formatted }));
+
+    // Validação em tempo real
+    const cleanPhone = formatted.replace(/\D/g, '');
+    if (cleanPhone.length > 0) {
+         // Regra: Menos de 10 dígitos OU (10 dígitos começando com 9 = celular sem o nono dígito)
+         if (cleanPhone.length < 10 || (cleanPhone.length === 10 && cleanPhone[2] === '9')) {
+            setPhoneError('Telefone incompleto');
+         } else {
+            setPhoneError('');
+         }
+    } else {
+        setPhoneError('');
+    }
+  };
+
+  const validateEmail = (email: string) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setFormData(prev => ({ ...prev, email: value }));
+      
+      if (emailError) {
+          if (validateEmail(value)) {
+              setEmailError('');
+          }
+      }
+  };
+
+  const handleEmailBlur = () => {
+      if (formData.email && !validateEmail(formData.email)) {
+          setEmailError('E-mail inválido');
+      } else {
+          setEmailError('');
+      }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+
+    // Validação Final antes do envio
+    if (mode === 'register') {
+        const cleanPhone = formData.phone.replace(/\D/g, '');
+        if (cleanPhone.length < 10 || (cleanPhone.length === 10 && cleanPhone[2] === '9')) {
+            setPhoneError('Por favor, informe um telefone válido.');
+            return;
+        }
+        
+        if (!validateEmail(formData.email)) {
+            setEmailError('Por favor, informe um e-mail válido.');
+            return;
+        }
+    }
+
+    setLoading(true);
 
     try {
       let loggedUser;
       if (mode === 'login') {
         loggedUser = await loginUser(formData.email, formData.password);
       } else {
-        loggedUser = await registerUser(formData.name, formData.email, formData.password);
+        loggedUser = await registerUser(formData.name, formData.email, formData.password, formData.phone);
       }
       onLogin(loggedUser);
       // Redirection handled by useEffect
@@ -115,7 +181,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login', user }) => 
   const switchMode = (newMode: 'login' | 'register') => {
       setMode(newMode);
       setError('');
-      setFormData({ name: '', email: '', password: '' });
+      setPhoneError('');
+      setEmailError('');
+      setFormData({ name: '', email: '', password: '', phone: '' });
   };
 
   if (user) return null; // Or a loading spinner if desired while redirecting
@@ -236,17 +304,45 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialMode = 'login', user }) => 
                       <div className="space-y-1.5">
                           <label className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-widest ml-1">E-mail</label>
                           <div className="relative group">
-                              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#1d1d1f] transition-colors" size={20} />
+                              <Mail className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${emailError ? 'text-red-400' : 'text-gray-400 group-focus-within:text-[#1d1d1f]'}`} size={20} />
                               <input 
                                   type="email" 
                                   required
                                   placeholder="seu@email.com"
-                                  className="w-full h-16 pl-12 pr-4 bg-gray-50 rounded-xl text-lg text-[#1d1d1f] outline-none border border-transparent focus:bg-white focus:border-[#B8860B] focus:shadow-lg transition-all placeholder:text-gray-400"
+                                  className={`w-full h-16 pl-12 pr-4 bg-gray-50 rounded-xl text-lg text-[#1d1d1f] outline-none border transition-all placeholder:text-gray-400 ${emailError ? 'border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-100' : 'border-transparent focus:bg-white focus:border-[#B8860B] focus:shadow-lg'}`}
                                   value={formData.email}
-                                  onChange={e => setFormData({...formData, email: e.target.value})}
+                                  onChange={handleEmailChange}
+                                  onBlur={handleEmailBlur}
                               />
                           </div>
+                          {emailError && (
+                            <p className="text-red-500 text-[10px] mt-1 font-bold uppercase tracking-wide flex items-center gap-1 pl-1 animate-pulse">
+                                <AlertCircle size={10} /> {emailError}
+                            </p>
+                          )}
                       </div>
+
+                      {mode === 'register' && (
+                          <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-widest ml-1">Telefone</label>
+                              <div className="relative group">
+                                  <Phone className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${phoneError ? 'text-red-400' : 'text-gray-400 group-focus-within:text-[#1d1d1f]'}`} size={20} />
+                                  <input 
+                                      type="tel" 
+                                      placeholder="(00) 00000-0000"
+                                      className={`w-full h-16 pl-12 pr-4 bg-gray-50 rounded-xl text-lg text-[#1d1d1f] outline-none border focus:bg-white focus:shadow-lg transition-all placeholder:text-gray-400 ${phoneError ? 'border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-100' : 'border-transparent focus:border-[#B8860B]'}`}
+                                      value={formData.phone}
+                                      onChange={handlePhoneChange}
+                                      maxLength={15}
+                                  />
+                              </div>
+                              {phoneError && (
+                                <p className="text-red-500 text-[10px] mt-1 font-bold uppercase tracking-wide flex items-center gap-1 pl-1 animate-pulse">
+                                    <AlertCircle size={10} /> {phoneError}
+                                </p>
+                              )}
+                          </div>
+                      )}
 
                       <div className="space-y-1.5">
                           <div className="flex justify-between items-center ml-1">

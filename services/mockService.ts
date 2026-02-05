@@ -576,7 +576,7 @@ export const loginUser = (email: string, password: string): Promise<User> => {
   });
 };
 
-export const registerUser = (name: string, email: string, password: string): Promise<User> => {
+export const registerUser = (name: string, email: string, password: string, phone?: string): Promise<User> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       const newUser: User = { 
@@ -585,7 +585,8 @@ export const registerUser = (name: string, email: string, password: string): Pro
         email, 
         isAdmin: false,
         isActive: true,
-        joinedAt: new Date().toLocaleDateString('pt-BR') 
+        joinedAt: new Date().toLocaleDateString('pt-BR'),
+        phone: phone || ''
       };
       MOCK_USERS.push(newUser);
       persist('magneto_users_db', MOCK_USERS);
@@ -634,6 +635,23 @@ export const addUser = (user: Omit<User, 'id' | 'joinedAt'>): User => {
 export const updateUser = (id: string, data: Partial<User> & { password?: string }) => {
     MOCK_USERS = MOCK_USERS.map(u => u.id === id ? { ...u, ...data } : u);
     persist('magneto_users_db', MOCK_USERS);
+
+    // --- CORREÇÃO DE CONSISTÊNCIA ---
+    // Se o nome do usuário mudou, propaga essa alteração para todos os pedidos históricos (customerName desnormalizado)
+    if (data.name) {
+        let ordersChanged = false;
+        ALL_ORDERS = ALL_ORDERS.map(order => {
+            if (order.userId === id && order.customerName !== data.name) {
+                ordersChanged = true;
+                return { ...order, customerName: data.name! };
+            }
+            return order;
+        });
+        
+        if (ordersChanged) {
+            persist('magneto_orders', ALL_ORDERS);
+        }
+    }
 };
 
 export const deleteUser = (id: string) => {

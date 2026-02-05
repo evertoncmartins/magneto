@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Plus, X, Edit3, Trash2, ToggleRight, ToggleLeft, HelpCircle, Tag, List, Filter } from 'lucide-react';
 import { FAQ, FAQCategory } from '../../types';
 import { updateFAQ, removeFAQ, getFAQCategories, removeFAQCategory, updateFAQCategory } from '../../services/mockService';
@@ -27,6 +28,10 @@ const AdminFAQ: React.FC<AdminFAQProps> = ({ faqs, refreshData }) => {
     const [catSearchTerm, setCatSearchTerm] = useState('');
     const [editingCategory, setEditingCategory] = useState<FAQCategory | null>(null);
     const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+    
+    // Delete Category Modal State
+    const [catToDelete, setCatToDelete] = useState<string | null>(null);
+    const [isDeleteCatModalOpen, setIsDeleteCatModalOpen] = useState(false);
 
     useEffect(() => {
         setCategories(getFAQCategories());
@@ -82,10 +87,17 @@ const AdminFAQ: React.FC<AdminFAQProps> = ({ faqs, refreshData }) => {
     };
 
     const handleDeleteCat = (id: string) => {
-        if(window.confirm("Tem certeza que deseja excluir esta categoria? Perguntas associadas podem perder a referência.")) {
-            removeFAQCategory(id);
+        setCatToDelete(id);
+        setIsDeleteCatModalOpen(true);
+    };
+
+    const confirmDeleteCat = () => {
+        if (catToDelete) {
+            removeFAQCategory(catToDelete);
             refreshData();
             setCategories(getFAQCategories());
+            setIsDeleteCatModalOpen(false);
+            setCatToDelete(null);
         }
     };
 
@@ -340,6 +352,38 @@ const AdminFAQ: React.FC<AdminFAQProps> = ({ faqs, refreshData }) => {
                 refreshData={() => setCategories(getFAQCategories())}
                 editingCategory={editingCategory}
             />
+
+            {/* DELETE CATEGORY CONFIRMATION MODAL - FULL SCREEN */}
+            {isDeleteCatModalOpen && catToDelete && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsDeleteCatModalOpen(false)}></div>
+                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-6 text-center z-10">
+                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Trash2 size={32} />
+                        </div>
+                        <h3 className="font-serif font-bold text-xl text-[#1d1d1f] mb-2">Excluir Categoria?</h3>
+                        <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                            Tem certeza que deseja excluir esta categoria? <br/>
+                            Perguntas associadas podem perder a referência.
+                        </p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setIsDeleteCatModalOpen(false)}
+                                className="flex-1 py-3 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={confirmDeleteCat}
+                                className="flex-1 py-3 bg-red-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all shadow-lg shadow-red-200"
+                            >
+                                Sim, Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </>
     );
 };

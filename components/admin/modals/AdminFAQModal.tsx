@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, HelpCircle, ToggleRight, ToggleLeft, Check, Save } from 'lucide-react';
 import { addFAQ, updateFAQ, getFAQCategories } from '../../../services/mockService';
 import { FAQ, FAQCategory } from '../../../types';
@@ -78,7 +79,7 @@ const AdminFAQModal: React.FC<AdminFAQModalProps> = ({ isOpen, onClose, refreshD
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={onClose}></div>
             <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 max-h-[90vh] z-10">
@@ -132,7 +133,7 @@ const AdminFAQModal: React.FC<AdminFAQModalProps> = ({ isOpen, onClose, refreshD
 
                         <div 
                             onClick={() => setFaqData({...faqData, isActive: !faqData.isActive})} 
-                            className={`cursor-pointer p-4 rounded-lg border transition-all flex items-center justify-between ${faqData.isActive ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-md' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                            className={`cursor-pointer p-4 rounded-xl border transition-all flex items-center justify-between ${faqData.isActive ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-lg' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
                         >
                             <span className="text-[10px] font-bold uppercase tracking-widest">Exibir no Site</span>
                             {faqData.isActive ? <ToggleRight size={22} className="text-[#B8860B]"/> : <ToggleLeft size={22} className="text-gray-300"/>}
@@ -159,7 +160,8 @@ const AdminFAQModal: React.FC<AdminFAQModalProps> = ({ isOpen, onClose, refreshD
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

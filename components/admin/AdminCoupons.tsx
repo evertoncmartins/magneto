@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Ticket, ToggleRight, ToggleLeft, Trash2, Plus, Calendar, Zap, Search, X, Edit3 } from 'lucide-react';
 import { Coupon } from '../../types';
 import { updateCoupon, removeCoupon } from '../../services/mockService';
@@ -148,51 +149,54 @@ const AdminCoupons: React.FC<AdminCouponsProps> = ({ coupons, refreshData, setIs
                     {filteredCoupons.map(coupon => (
                         <div 
                             key={coupon.code} 
-                            className={`relative flex h-32 rounded-xl border transition-all duration-300 group overflow-hidden ${
+                            className={`relative flex min-h-[8rem] h-auto rounded-xl border transition-all duration-300 group overflow-hidden ${
                                 coupon.isActive 
                                 ? 'bg-white border-gray-200 shadow-sm hover:shadow-md hover:border-[#B8860B]/30' 
                                 : 'bg-gray-50 border-gray-200 opacity-60 grayscale hover:opacity-100'
                             }`}
                         >
                             {/* Left Section: Info */}
-                            <div className="flex-1 p-5 flex flex-col justify-center relative">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-lg transition-colors ${coupon.isActive ? 'bg-[#1d1d1f] text-white' : 'bg-gray-200 text-gray-400'}`}>
+                            <div className="flex-1 p-5 flex flex-col justify-center relative min-w-0">
+                                <div className="flex justify-between items-center gap-3">
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className={`p-2 rounded-lg shrink-0 transition-colors ${coupon.isActive ? 'bg-[#1d1d1f] text-white' : 'bg-gray-200 text-gray-400'}`}>
                                             <Ticket size={18} />
                                         </div>
-                                        <div>
-                                            <h3 className={`text-lg font-bold font-mono tracking-wider ${coupon.isActive ? 'text-[#1d1d1f]' : 'text-gray-500'}`}>
+                                        <div className="min-w-0 flex-1">
+                                            <h3 
+                                                className={`text-base sm:text-lg font-bold font-mono tracking-wider break-all leading-tight ${coupon.isActive ? 'text-[#1d1d1f]' : 'text-gray-500'}`}
+                                                title={coupon.code}
+                                            >
                                                 {coupon.code}
                                             </h3>
-                                            <p className={`text-[10px] font-bold uppercase tracking-widest ${coupon.isActive ? 'text-[#B8860B]' : 'text-gray-400'}`}>
+                                            <p className={`text-[9px] font-bold uppercase tracking-widest truncate ${coupon.isActive ? 'text-[#B8860B]' : 'text-gray-400'}`}>
                                                 {coupon.discountType === 'percent' ? 'Desconto em %' : 'Desconto Fixo'}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <span className={`text-2xl font-serif font-bold ${coupon.isActive ? 'text-[#1d1d1f]' : 'text-gray-400'}`}>
+                                    <div className="text-right shrink-0 pl-2">
+                                        <span className={`text-xl sm:text-2xl font-serif font-bold whitespace-nowrap ${coupon.isActive ? 'text-[#1d1d1f]' : 'text-gray-400'}`}>
                                             {coupon.discountType === 'percent' ? `${coupon.value}%` : `R$ ${coupon.value}`}
                                         </span>
                                         <p className="text-[9px] text-gray-400 uppercase tracking-wide text-right">OFF</p>
                                     </div>
                                 </div>
                                 
-                                <div className="mt-auto flex items-center gap-4 text-[9px] font-bold uppercase tracking-widest text-gray-400">
-                                    <span className="flex items-center gap-1"><Zap size={10}/> {coupon.onlyFirstPurchase ? '1ª Compra' : 'Geral'}</span>
-                                    <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                                    <span className="flex items-center gap-1"><Calendar size={10}/> {coupon.expirationDate ? coupon.expirationDate : 'Eterno'}</span>
+                                <div className="mt-auto flex items-center gap-4 text-[9px] font-bold uppercase tracking-widest text-gray-400 pt-2">
+                                    <span className="flex items-center gap-1 shrink-0"><Zap size={10}/> {coupon.onlyFirstPurchase ? '1ª Compra' : 'Geral'}</span>
+                                    <span className="w-1 h-1 rounded-full bg-gray-300 shrink-0"></span>
+                                    <span className="flex items-center gap-1 truncate"><Calendar size={10}/> {coupon.expirationDate ? coupon.expirationDate : 'Eterno'}</span>
                                 </div>
                             </div>
 
                             {/* Divider Line & Holes */}
-                            <div className="relative w-0 border-l-2 border-dashed border-gray-200 my-3 flex flex-col justify-between items-center z-10">
+                            <div className="relative w-0 border-l-2 border-dashed border-gray-200 my-3 flex flex-col justify-between items-center z-10 shrink-0">
                                 <div className={`absolute -top-5 -left-2 w-4 h-4 rounded-full ${coupon.isActive ? 'bg-[#F5F5F7]' : 'bg-[#F5F5F7]'}`}></div>
                                 <div className={`absolute -bottom-5 -left-2 w-4 h-4 rounded-full ${coupon.isActive ? 'bg-[#F5F5F7]' : 'bg-[#F5F5F7]'}`}></div>
                             </div>
 
                             {/* Right Section: Actions */}
-                            <div className={`w-24 p-2 flex flex-col items-center justify-center gap-1 relative z-20 ${coupon.isActive ? 'bg-gray-50/50' : 'bg-gray-100/50'}`}>
+                            <div className={`w-24 p-2 flex flex-col items-center justify-center gap-1 relative z-20 shrink-0 ${coupon.isActive ? 'bg-gray-50/50' : 'bg-gray-100/50'}`}>
                                  <button 
                                     onClick={() => handleToggleActive(coupon)} 
                                     className={`p-2 rounded-lg transition-colors ${coupon.isActive ? 'text-emerald-500 hover:bg-white shadow-sm' : 'text-gray-400 hover:text-emerald-500'}`}
@@ -262,8 +266,8 @@ const AdminCoupons: React.FC<AdminCouponsProps> = ({ coupons, refreshData, setIs
                 editingCoupon={editingCoupon}
             />
 
-            {/* DELETE CONFIRMATION MODAL */}
-            {isDeleteModalOpen && couponToDelete && (
+            {/* DELETE CONFIRMATION MODAL - FULL SCREEN */}
+            {isDeleteModalOpen && couponToDelete && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsDeleteModalOpen(false)}></div>
                     <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-6 text-center z-10">
@@ -290,7 +294,8 @@ const AdminCoupons: React.FC<AdminCouponsProps> = ({ coupons, refreshData, setIs
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );
