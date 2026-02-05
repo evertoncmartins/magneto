@@ -39,8 +39,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onStartOrder 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Desktop
   
-  // CMS Submenu State
-  const [isCmsSubmenuOpen, setIsCmsSubmenuOpen] = useState(true);
+  // CMS Submenu State - Inicializado como false (recolhido)
+  const [isCmsSubmenuOpen, setIsCmsSubmenuOpen] = useState(false);
   const [isHomeSubmenuOpen, setIsHomeSubmenuOpen] = useState(false); // Novo estado para Home
   const [isInstitutionalSubmenuOpen, setIsInstitutionalSubmenuOpen] = useState(false);
   const [isPrivacySubmenuOpen, setIsPrivacySubmenuOpen] = useState(false); // Novo estado para Privacidade
