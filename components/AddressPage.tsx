@@ -90,6 +90,8 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
             setIsFetchingCep(true);
             try {
                 const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+                if (!response.ok) throw new Error('Falha na conexão');
+                
                 const data = await response.json();
                 if (!data.erro) {
                     // Formata Estado como "Nome - Sigla" (lógica solicitada)
@@ -113,9 +115,12 @@ const AddressPage: React.FC<AddressPageProps> = ({ user, onUpdateUser }) => {
                         if (data.uf) delete newErrors.state;
                         return newErrors;
                     });
+                } else {
+                    setErrors(prev => ({ ...prev, zipCode: 'CEP não encontrado.' }));
                 }
             } catch (error) {
                 console.error("CEP Error", error);
+                setErrors(prev => ({ ...prev, zipCode: 'Preencha manualmente.' }));
             } finally {
                 setIsFetchingCep(false);
             }

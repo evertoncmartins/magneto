@@ -6,7 +6,7 @@ import {
     Leaf, Heart, Truck, Layers, Info, Star, Shield, Gift, Camera, Zap, Globe, MapPin, 
     Phone, Mail, Instagram, Facebook, Twitter, Award, Clock, Calendar, Search, 
     User, Users, Sun, Moon, Droplet, Smile, ThumbsUp, Send, Package, Tag, AlertCircle,
-    Settings, ListOrdered, FileText
+    Settings, ListOrdered, FileText, Recycle
 } from 'lucide-react';
 import { PageContent, PageField, PageSection } from '../../types';
 import { updateSiteContent } from '../../services/mockService';
@@ -55,6 +55,7 @@ const AVAILABLE_ICONS = [
     { id: 'Send', icon: Send },
     { id: 'Tag', icon: Tag },
     { id: 'AlertCircle', icon: AlertCircle },
+    { id: 'Recycle', icon: Recycle },
 ];
 
 const compressImage = async (file: File): Promise<string> => {
@@ -324,6 +325,33 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
         );
     };
 
+    // Renderização Especial para Pontos Sustentáveis
+    const renderSustainabilityPoints = (pageId: string, section: PageSection) => {
+        // Agrupa campos por ponto (p1, p2, p3, p4)
+        const points = [1, 2, 3, 4].map(num => ({
+            id: num,
+            fields: section.fields.filter(f => f.key.startsWith(`p${num}_`))
+        }));
+
+        return (
+            <div className="space-y-8 animate-fade-in">
+                {points.map(point => (
+                    <div key={point.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#1d1d1f] text-[#B8860B] flex items-center justify-center font-bold text-xs shadow-sm">
+                                0{point.id}
+                            </div>
+                            <h4 className="font-serif font-bold text-base text-[#1d1d1f]">Ponto Sustentável {point.id}</h4>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            {point.fields.map(field => renderField(pageId, section.id, field))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     const renderStatsPage = () => {
         const sectionId = 'config';
         const itemsMap: Record<string, { label: string, toggleKey: string, inputKey: string }> = {
@@ -446,6 +474,22 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                                             </div>
                                         </div>
                                         {renderProductionSteps(selectedPageId, section)}
+                                    </div>
+                                );
+                            }
+
+                            // Se for a seção de pontos sustentáveis, usa renderizador especial
+                            if (selectedPageId === 'sustainability' && section.id === 'points') {
+                                return (
+                                    <div key={section.id} className="space-y-6">
+                                        <div className="flex items-center gap-3 ml-2">
+                                            <div className="p-2 bg-[#B8860B]/10 rounded-lg text-[#B8860B] shadow-sm"><Recycle size={20}/></div>
+                                            <div>
+                                                <h3 className="font-serif font-bold text-xl text-[#1d1d1f]">{section.title}</h3>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Organização de Pilares</p>
+                                            </div>
+                                        </div>
+                                        {renderSustainabilityPoints(selectedPageId, section)}
                                     </div>
                                 );
                             }
