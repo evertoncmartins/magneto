@@ -35,7 +35,7 @@ const AdminLoginTestimonials: React.FC = () => {
     // Drag & Drop State
     const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
 
-    // Modal State
+    // Modal State (Edit/Create)
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
@@ -45,6 +45,10 @@ const AdminLoginTestimonials: React.FC = () => {
     const [initialFormData, setInitialFormData] = useState({
         quote: '', author: '', role: '', avatar: '', bgImage: '', rating: 5, isActive: true
     });
+
+    // Delete Confirmation Modal State
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
@@ -95,10 +99,17 @@ const AdminLoginTestimonials: React.FC = () => {
         loadData();
     };
 
-    const handleDelete = (id: string) => {
-        if (window.confirm('Tem certeza que deseja remover este depoimento?')) {
-            deleteLoginTestimonial(id);
+    const requestDelete = (id: string) => {
+        setDeleteId(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (deleteId) {
+            deleteLoginTestimonial(deleteId);
             loadData();
+            setIsDeleteModalOpen(false);
+            setDeleteId(null);
         }
     };
 
@@ -334,7 +345,7 @@ const AdminLoginTestimonials: React.FC = () => {
                                                     {item.isActive ? <ToggleRight size={20} className="text-emerald-500"/> : <ToggleLeft size={20}/>}
                                                 </button>
                                                 <button onClick={() => handleOpenModal(item)} className="p-2 text-gray-400 hover:text-[#B8860B] transition-colors"><Edit3 size={16}/></button>
-                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                                                <button onClick={() => requestDelete(item.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
                                             </div>
                                         </div>
                                     </div>
@@ -632,6 +643,38 @@ const AdminLoginTestimonials: React.FC = () => {
                                 ) : (
                                     <><Save size={16}/> {editingId ? 'Salvar Alterações' : 'Criar Depoimento'}</>
                                 )}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* DELETE CONFIRMATION MODAL */}
+            {isDeleteModalOpen && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsDeleteModalOpen(false)}></div>
+                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-fade-in border border-gray-100 p-6 text-center z-10">
+                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Trash2 size={32} />
+                        </div>
+                        <h3 className="font-serif font-bold text-xl text-[#1d1d1f] mb-2">Excluir Depoimento?</h3>
+                        <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                            Tem certeza que deseja remover este depoimento? <br/>
+                            Esta ação não pode ser desfeita.
+                        </p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                className="flex-1 py-3 bg-gray-100 text-[#1d1d1f] font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={confirmDelete}
+                                className="flex-1 py-3 bg-red-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all shadow-lg shadow-red-200"
+                            >
+                                Sim, Excluir
                             </button>
                         </div>
                     </div>
