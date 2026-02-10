@@ -585,21 +585,21 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
             <div className="animate-fade-in space-y-6">
                 
                 {/* CONTROLS BAR: Search */}
-                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col lg:flex-row gap-4 items-center">
+                <div className="flex flex-col lg:flex-row gap-4 items-center w-full">
                     {/* Search */}
                     <div className="relative w-full group shrink-0">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={18} />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={20} />
                         <input 
                             type="text"
                             placeholder="Buscar por ID ou Nome..."
                             value={globalSearch}
                             onChange={(e) => setGlobalSearch(e.target.value)}
-                            className="w-full h-12 pl-12 pr-12 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B]/20 transition-all shadow-inner placeholder:text-gray-400"
+                            className="w-full h-12 pl-12 pr-12 bg-transparent border border-gray-300 rounded-lg text-sm font-medium outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B] transition-all placeholder:text-gray-400 text-[#1d1d1f]"
                         />
                         {globalSearch && (
                             <button 
                                 onClick={() => setGlobalSearch('')}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-100 rounded-full transition-all"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-50 rounded-full transition-all"
                                 title="Limpar busca"
                             >
                                 <X size={16} />
@@ -623,14 +623,14 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                 onClick={() => setOrderStatusFilter(status.id as any)}
                                 className={`
                                     flex-none whitespace-nowrap
-                                    px-6 py-3 
-                                    rounded-xl 
+                                    px-5 py-2.5 
+                                    rounded-lg 
                                     text-[10px] font-bold uppercase tracking-widest 
                                     transition-all 
                                     border flex items-center justify-center gap-2
                                     ${isActive 
                                         ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-md' 
-                                        : 'bg-white text-gray-400 border-gray-100 hover:text-gray-600 hover:bg-gray-50'
+                                        : 'bg-transparent text-gray-500 border-gray-300 hover:border-gray-400 hover:text-[#1d1d1f]'
                                     }
                                 `}
                             >
@@ -659,14 +659,14 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                         onClick={() => setOrderStatusFilter('deleted')}
                         className={`
                             flex-none whitespace-nowrap
-                            px-6 py-3 
-                            rounded-xl 
+                            px-5 py-2.5
+                            rounded-lg 
                             text-[10px] font-bold uppercase tracking-widest 
                             transition-all 
                             border flex items-center justify-center gap-2
                             ${orderStatusFilter === 'deleted'
                                 ? 'bg-red-50 text-red-600 border-red-100 shadow-md' 
-                                : 'bg-white text-gray-400 border-gray-100 hover:text-gray-600 hover:bg-gray-50'
+                                : 'bg-transparent text-gray-500 border-gray-300 hover:text-gray-600 hover:bg-gray-50'
                             }
                         `}
                     >
@@ -989,6 +989,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
             {/* MODALS */}
             {/* ... Modals (Edit, Cancel, Revert, Delete, Lightbox) ... */}
             {/* The rest of the modal code is preserved as it was, just ensure imports match */}
+            {/* Including Edit Modal for completeness to ensure file is valid */}
+            
             {isCancelModalOpen && orderToCancel && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsCancelModalOpen(false)}></div>
@@ -1055,11 +1057,6 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 document.body
             )}
 
-            {/* EDIT MODAL and LIGHTBOX MODAL would follow here similarly... keeping them for brevity as requested only changes to filter UI */}
-            {/* Assuming EditModal and Lightbox code is unchanged from previous full file content provided in prompt */}
-            {/* To save space in response, I am not repeating the huge Edit Modal unless necessary, but in a real update I would include all */}
-            {/* Including Edit Modal for completeness to ensure file is valid */}
-            
             {isEditModalOpen && editingOrder && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#1d1d1f]/60 backdrop-blur-md" onClick={() => setIsEditModalOpen(false)}></div>

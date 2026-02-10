@@ -103,8 +103,8 @@ const AdminCoupons: React.FC<AdminCouponsProps> = ({ coupons, refreshData, setIs
                         </div>
                     </div>
 
-                    {/* Filter Tabs */}
-                    <div className="flex flex-wrap md:flex-nowrap gap-2 w-full md:w-fit bg-transparent md:bg-white md:p-1.5 md:rounded-xl md:shadow-sm md:border md:border-gray-100">
+                    {/* Filter Tabs (Scrollable on Mobile) */}
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide w-full pb-2 md:pb-0">
                         {[
                             { id: 'all', label: 'Todos' },
                             { id: 'active', label: 'Ativos' },
@@ -118,14 +118,13 @@ const AdminCoupons: React.FC<AdminCouponsProps> = ({ coupons, refreshData, setIs
                                     key={filter.id}
                                     onClick={() => setStatusFilter(filter.id as any)}
                                     className={`
-                                        flex-1 md:flex-none
+                                        flex-none whitespace-nowrap
                                         px-6 py-3 rounded-xl 
                                         text-[10px] font-bold uppercase tracking-widest 
-                                        transition-all whitespace-nowrap 
-                                        border flex items-center justify-center gap-2
+                                        transition-all border flex items-center justify-center gap-2
                                         ${isActive 
                                             ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-md' 
-                                            : 'bg-white md:bg-transparent text-gray-400 border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                                            : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200 hover:bg-gray-50'
                                         }
                                     `}
                                 >

@@ -172,8 +172,8 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                     </button>
                 </div>
 
-                {/* FILTER TABS */}
-                <div className="flex flex-wrap md:flex-nowrap gap-2 w-full md:w-fit bg-transparent md:bg-white md:p-1.5 md:rounded-xl md:shadow-sm md:border md:border-gray-100">
+                {/* FILTER TABS (Scrollable on Mobile) */}
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide w-full pb-2 md:pb-0">
                     {[
                         { id: 'all', label: 'Todos' }, 
                         { id: 'active', label: 'Ativos' }, 
@@ -187,9 +187,9 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                                 key={status.id} 
                                 onClick={() => setStatusFilter(status.id as any)}
                                 className={`
-                                    flex-1 md:flex-none
+                                    flex-none whitespace-nowrap
                                     px-6 py-3 rounded-xl 
-                                    text-[10px] font-bold uppercase tracking-widest whitespace-nowrap 
+                                    text-[10px] font-bold uppercase tracking-widest 
                                     transition-all border flex items-center justify-center gap-2
                                     ${isActive 
                                         ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-md' 
