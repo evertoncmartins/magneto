@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Loader2, User as UserIcon, MapPin, Plus, Edit3, Trash2, CheckCircle, Search, Tag, Building, Hash, Map, Navigation, Check, AlertCircle, Shield, Ban, FileText, AlertTriangle, Lock } from 'lucide-react';
 import { User, Address } from '../../../types';
@@ -59,47 +59,59 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
     // Novo estado para erros de endereço
     const [addressErrors, setAddressErrors] = useState<Record<string, string>>({});
 
+    // Ref to track previous editingUser to avoid effect loops if object ref changes but data is same
+    const prevEditingUserIdRef = useRef<string | undefined>(undefined);
+
     useEffect(() => {
         if (isOpen) {
-            setActiveTab('profile');
-            setIsAddressFormOpen(false);
-            setEditingAddressId(null);
-            setIsDirty(false); // Reset dirty state on open
-            setShowDeleteConfirmation(false);
-            setShowDuplicateAddressModal(false);
-            setDeleteBlockType(null); // Reset delete error modal
-            setEmailError('');
-            setPhoneError('');
-            setAddressErrors({}); // Limpa erros de endereço
+            // Only update state if the user ID changed or if it's a new open action
+            // This prevents loops if editingUser object reference changes in parent but ID is same
+            if (editingUser?.id !== prevEditingUserIdRef.current || !prevEditingUserIdRef.current) {
+                setActiveTab('profile');
+                setIsAddressFormOpen(false);
+                setEditingAddressId(null);
+                setIsDirty(false); // Reset dirty state on open
+                setShowDeleteConfirmation(false);
+                setShowDuplicateAddressModal(false);
+                setDeleteBlockType(null); // Reset delete error modal
+                setEmailError('');
+                setPhoneError('');
+                setAddressErrors({}); // Limpa erros de endereço
 
-            if (editingUser) {
-                // Carrega dados do perfil
-                setProfileData({ 
-                    name: editingUser.name, 
-                    email: editingUser.email, 
-                    isAdmin: !!editingUser.isAdmin, 
-                    isActive: editingUser.isActive ?? true, 
-                    phone: editingUser.phone || '', 
-                    password: ''
-                });
+                if (editingUser) {
+                    // Carrega dados do perfil
+                    setProfileData({ 
+                        name: editingUser.name, 
+                        email: editingUser.email, 
+                        isAdmin: !!editingUser.isAdmin, 
+                        isActive: editingUser.isActive ?? true, 
+                        phone: editingUser.phone || '', 
+                        password: ''
+                    });
 
-                // Carrega endereços
-                let userAddresses = editingUser.savedAddresses || [];
-                // Se tiver um endereço ativo mas ele não estiver na lista de salvos (legado), adiciona
-                if (editingUser.address && !userAddresses.find(a => a.id === editingUser.address?.id)) {
-                    // Garante que tenha ID
-                    const activeWithId = { ...editingUser.address, id: editingUser.address.id || `addr-${Date.now()}` };
-                    userAddresses = [activeWithId, ...userAddresses];
+                    // Carrega endereços
+                    let userAddresses = editingUser.savedAddresses || [];
+                    // Se tiver um endereço ativo mas ele não estiver na lista de salvos (legado), adiciona
+                    if (editingUser.address && !userAddresses.find(a => a.id === editingUser.address?.id)) {
+                        // Garante que tenha ID
+                        const activeWithId = { ...editingUser.address, id: editingUser.address.id || `addr-${Date.now()}` };
+                        userAddresses = [activeWithId, ...userAddresses];
+                    }
+                    setAddresses(userAddresses);
+                    setSelectedAddressId(editingUser.address?.id || (userAddresses.length > 0 ? userAddresses[0].id : undefined));
+
+                } else {
+                    // Novo Usuário
+                    setProfileData({ name: '', email: '', isAdmin: false, isActive: true, phone: '', password: '' });
+                    setAddresses([]);
+                    setSelectedAddressId(undefined);
                 }
-                setAddresses(userAddresses);
-                setSelectedAddressId(editingUser.address?.id || (userAddresses.length > 0 ? userAddresses[0].id : undefined));
-
-            } else {
-                // Novo Usuário
-                setProfileData({ name: '', email: '', isAdmin: false, isActive: true, phone: '', password: '' });
-                setAddresses([]);
-                setSelectedAddressId(undefined);
+                
+                prevEditingUserIdRef.current = editingUser?.id;
             }
+        } else {
+            // Reset ref when closed
+            prevEditingUserIdRef.current = undefined;
         }
     }, [isOpen, editingUser]);
 
@@ -109,6 +121,7 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
         setIsDirty(true);
     };
 
+    // ... rest of the component (handlers) remains the same ...
     // --- MASK & VALIDATION HANDLERS ---
 
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,8 +275,6 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
                 const cleanStr = (s?: string) => (s || '').trim().toLowerCase();
 
                 // Critério Rigoroso: CEP + Número + Complemento iguais
-                // Se o logradouro muda, o CEP geralmente muda. Se for CEP único de cidade pequena, o logradouro + número diferenciam.
-                // Mas a forma mais segura de duplicidade "exata" é CEP + Número + Complemento.
                 return (
                     cleanZip(addr.zipCode) === cleanZip(addressFormData.zipCode) &&
                     cleanStr(addr.number) === cleanStr(addressFormData.number) &&

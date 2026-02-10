@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
     DollarSign, ShoppingBag, Users, Activity, 
     Search, Filter, ArrowUpRight, ArrowDownRight,
-    Layers, Wallet, Calendar, X, MousePointerClick, ChevronRight, BarChart3
+    Layers, Wallet, Calendar, X, MousePointerClick, ChevronRight, BarChart3, SlidersHorizontal
 } from 'lucide-react';
 import { Order } from '../../types';
 import { getUsers } from '../../services/mockService';
@@ -45,18 +45,36 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ finance, orders, setActiveT
     });
     const [endDate, setEndDate] = useState(() => formatDateForInput(new Date()));
     
-    const [activePreset, setActivePreset] = useState<'Weekly' | 'Monthly' | 'Yearly' | 'Custom'>('Monthly');
+    // Data máxima permitida (Hoje - Dinâmico)
+    const maxDate = formatDateForInput(new Date());
+    
+    const [activePreset, setActivePreset] = useState<'Weekly' | 'Monthly' | 'Yearly' | 'AllTime' | 'Custom'>('Monthly');
     const [orderSearch, setOrderSearch] = useState('');
     const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(null); // Armazena um ID ou Label único do período
     const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
     
     // Handler para Presets
-    const applyPreset = (type: 'Weekly' | 'Monthly' | 'Yearly') => {
+    const applyPreset = (type: 'Weekly' | 'Monthly' | 'Yearly' | 'AllTime') => {
         const end = new Date();
-        const start = new Date();
-        if (type === 'Weekly') start.setDate(end.getDate() - 6);
-        else if (type === 'Monthly') start.setDate(end.getDate() - 29);
-        else if (type === 'Yearly') start.setFullYear(end.getFullYear() - 1);
+        let start = new Date();
+
+        if (type === 'Weekly') {
+            start.setDate(end.getDate() - 6);
+        } else if (type === 'Monthly') {
+            start.setDate(end.getDate() - 29);
+        } else if (type === 'Yearly') {
+            start.setFullYear(end.getFullYear() - 1);
+        } else if (type === 'AllTime') {
+            // Encontra a data do pedido mais antigo
+            if (orders.length > 0) {
+                const timestamps = orders.map(o => parseOrderDate(o.date).getTime());
+                const minTimestamp = Math.min(...timestamps);
+                start = new Date(minTimestamp);
+            } else {
+                // Fallback se não houver pedidos: 1 ano atrás
+                start.setFullYear(end.getFullYear() - 1);
+            }
+        }
 
         setStartDate(formatDateForInput(start));
         setEndDate(formatDateForInput(end));
@@ -65,8 +83,21 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ finance, orders, setActiveT
     };
 
     const handleDateChange = (type: 'start' | 'end', value: string) => {
-        if (type === 'start') setStartDate(value);
-        else setEndDate(value);
+        // Bloqueio de segurança: Não permite selecionar data futura
+        if (value > maxDate) {
+            return; 
+        }
+
+        if (type === 'start') {
+            // Se a data de início for maior que a data fim atual, ajusta a data fim
+            if (value > endDate) setEndDate(value);
+            setStartDate(value);
+        } else {
+            // Se a data fim for menor que a data de início, ajusta a data de início
+            if (value < startDate) setStartDate(value);
+            setEndDate(value);
+        }
+        
         setActivePreset('Custom');
         setSelectedDateFilter(null);
     };
@@ -109,9 +140,11 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ finance, orders, setActiveT
         else if (diffDays > 30) granularity = 'week';  // Mais de 30 dias -> Agrupa por Semana
 
         const current = new Date(start);
+        let loopSafety = 0; // Safety counter to prevent infinite loops
         
         // Loop principal
-        while (current <= end) {
+        while (current <= end && loopSafety < 1000) {
+            loopSafety++;
             let bucketEnd = new Date(current);
             let label = '';
             let fullDateId = ''; // ID único para o filtro
@@ -337,6 +370,64 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ finance, orders, setActiveT
     return (
         <div className="space-y-6 animate-fade-in pb-20">
             
+            {/* GLOBAL CONTROL BAR - DATE FILTERS */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-center gap-3 text-[#1d1d1f]">
+                    <div className="p-2 bg-[#F5F5F7] rounded-lg">
+                        <SlidersHorizontal size={20} className="text-[#B8860B]" />
+                    </div>
+                    <div>
+                        <h3 className="font-serif font-bold text-sm text-[#1d1d1f]">Filtro de Período</h3>
+                        <p className="text-[10px] text-gray-400 font-medium">Afeta todos os dados abaixo</p>
+                    </div>
+                </div>
+
+                <div className="flex flex-wrap xl:flex-nowrap items-center gap-3 w-full md:w-auto justify-end">
+                    {/* Presets */}
+                    <div className="flex bg-[#F5F5F7] rounded-xl border border-transparent p-1 w-full sm:w-auto overflow-x-auto scrollbar-hide">
+                        {['Weekly', 'Monthly', 'Yearly', 'AllTime'].map((preset) => (
+                            <button 
+                                key={preset}
+                                onClick={() => applyPreset(preset as any)} 
+                                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
+                                    activePreset === preset 
+                                    ? 'bg-white text-[#1d1d1f] shadow-sm border border-gray-200' 
+                                    : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-200/50'
+                                }`}
+                            >
+                                {preset === 'Weekly' ? '7 Dias' : preset === 'Monthly' ? '30 Dias' : preset === 'Yearly' ? '1 Ano' : 'Todo Período'}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    {/* Divider line for desktop */}
+                    <div className="hidden xl:block h-8 w-px bg-gray-200"></div>
+                    
+                    {/* Custom Date Inputs */}
+                    <div className="flex items-center gap-2 w-full sm:w-auto bg-[#F5F5F7] p-1.5 rounded-xl border border-transparent justify-between sm:justify-start group focus-within:border-[#B8860B]/30 focus-within:bg-white transition-all">
+                        <div className="relative group flex-1 sm:flex-none">
+                            <input 
+                                type="date" 
+                                value={startDate}
+                                max={maxDate}
+                                onChange={(e) => handleDateChange('start', e.target.value)}
+                                className={`w-full sm:w-28 bg-transparent px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#1d1d1f] outline-none border-b border-transparent hover:border-gray-300 focus:border-[#B8860B] transition-colors cursor-pointer ${activePreset === 'Custom' ? 'text-[#B8860B]' : ''}`}
+                            />
+                        </div>
+                        <span className="text-gray-300"><ChevronRight size={12}/></span>
+                        <div className="relative group flex-1 sm:flex-none">
+                            <input 
+                                type="date" 
+                                value={endDate}
+                                max={maxDate}
+                                onChange={(e) => handleDateChange('end', e.target.value)}
+                                className={`w-full sm:w-28 bg-transparent px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#1d1d1f] outline-none border-b border-transparent hover:border-gray-300 focus:border-[#B8860B] transition-colors cursor-pointer ${activePreset === 'Custom' ? 'text-[#B8860B]' : ''}`}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* KPI CARDS (DADOS FILTRADOS) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
@@ -365,8 +456,8 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ finance, orders, setActiveT
                 {/* 1. Bar Chart - Sales Performance */}
                 <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
                     
-                    {/* Header com Date Picker Integrado */}
-                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
+                    {/* Header Simplificado (Controles movidos para cima) */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                         <div>
                             <h3 className="font-serif font-bold text-lg text-[#1d1d1f] flex items-center gap-2">
                                 <BarChart3 size={18} className="text-[#B8860B]" /> Desempenho de Vendas
@@ -376,55 +467,11 @@ const AdminFinance: React.FC<AdminFinanceProps> = ({ finance, orders, setActiveT
                                     ? <span className="text-[#B8860B] font-bold flex items-center gap-1">Filtrado por: {chartData.data.find(d => d.fullDate === selectedDateFilter)?.tooltipLabel} <button onClick={() => setSelectedDateFilter(null)}><X size={12}/></button></span> 
                                     : 'Receita no intervalo selecionado'
                                 }
-                                <span className="bg-gray-100 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border border-gray-200">
-                                    AGRUPADO POR: {chartData.granularity === 'day' ? 'DIA' : chartData.granularity === 'week' ? 'SEMANA' : chartData.granularity === 'month' ? 'MÊS' : 'ANO'}
-                                </span>
                             </p>
                         </div>
-                        
-                        {/* Improved Date Range Selector (UX Fixed) */}
-                        <div className="flex flex-wrap xl:flex-nowrap items-center gap-3 w-full xl:w-auto justify-end">
-                            {/* Presets */}
-                            <div className="flex bg-white rounded-xl shadow-sm border border-gray-100 p-1 w-full sm:w-auto overflow-x-auto scrollbar-hide">
-                                {['Weekly', 'Monthly', 'Yearly'].map((preset) => (
-                                    <button 
-                                        key={preset}
-                                        onClick={() => applyPreset(preset as any)} 
-                                        className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
-                                            activePreset === preset 
-                                            ? 'bg-[#1d1d1f] text-white shadow-md' 
-                                            : 'text-gray-400 hover:text-[#1d1d1f] hover:bg-gray-50'
-                                        }`}
-                                    >
-                                        {preset === 'Weekly' ? '7 Dias' : preset === 'Monthly' ? '30 Dias' : '1 Ano'}
-                                    </button>
-                                ))}
-                            </div>
-                            
-                            {/* Divider line for desktop (hidden on mobile/wrap) */}
-                            <div className="hidden xl:block h-8 w-px bg-gray-200"></div>
-                            
-                            {/* Custom Date Inputs */}
-                            <div className="flex items-center gap-2 w-full sm:w-auto bg-[#F5F5F7] p-1.5 rounded-xl border border-gray-100 justify-between sm:justify-start">
-                                <div className="relative group flex-1 sm:flex-none">
-                                    <input 
-                                        type="date" 
-                                        value={startDate}
-                                        onChange={(e) => handleDateChange('start', e.target.value)}
-                                        className={`w-full sm:w-28 bg-transparent px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#1d1d1f] outline-none border-b border-transparent hover:border-gray-300 focus:border-[#B8860B] transition-colors cursor-pointer ${activePreset === 'Custom' ? 'text-[#B8860B]' : ''}`}
-                                    />
-                                </div>
-                                <span className="text-gray-300"><ChevronRight size={12}/></span>
-                                <div className="relative group flex-1 sm:flex-none">
-                                    <input 
-                                        type="date" 
-                                        value={endDate}
-                                        onChange={(e) => handleDateChange('end', e.target.value)}
-                                        className={`w-full sm:w-28 bg-transparent px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#1d1d1f] outline-none border-b border-transparent hover:border-gray-300 focus:border-[#B8860B] transition-colors cursor-pointer ${activePreset === 'Custom' ? 'text-[#B8860B]' : ''}`}
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                        <span className="bg-gray-50 px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest border border-gray-100 text-gray-500">
+                            AGRUPADO POR: {chartData.granularity === 'day' ? 'DIA' : chartData.granularity === 'week' ? 'SEMANA' : chartData.granularity === 'month' ? 'MÊS' : 'ANO'}
+                        </span>
                     </div>
 
                     {/* Chart Bars - FIX: h-full on wrappers to ensure bar display */}

@@ -23,7 +23,7 @@ const AdminOverview: React.FC<AdminOverviewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
                     { label: 'Receita Total', val: `R$ ${finance.totalRevenue.toLocaleString()}`, sub: '+12% vs mês anterior', icon: DollarSign, color: 'from-[#1d1d1f] to-[#3a3a3a]', text: 'text-white', action: () => setActiveTab('finance') },
-                    { label: 'Pedidos Ativos', val: orders.filter(o => o.status !== 'delivered').length, sub: 'Necessitam atenção', icon: Package, color: 'from-white to-gray-50', text: 'text-[#1d1d1f]', action: () => setActiveTab('orders') },
+                    { label: 'Pedidos Ativos', val: orders.filter(o => o.status !== 'delivered' && !o.deleted).length, sub: 'Necessitam atenção', icon: Package, color: 'from-white to-gray-50', text: 'text-[#1d1d1f]', action: () => setActiveTab('orders') },
                     { label: 'Clientes', val: users.length, sub: 'Novos esta semana: 4', icon: Users, color: 'from-white to-gray-50', text: 'text-[#1d1d1f]', action: () => setActiveTab('users') },
                     { label: 'Ticket Médio', val: `R$ ${finance.avgTicket.toFixed(0)}`, sub: 'Meta: R$ 120', icon: TrendingUp, color: 'from-[#B8860B] to-[#D4AF37]', text: 'text-white', action: () => setActiveTab('finance') },
                 ].map((stat, i) => (
@@ -84,7 +84,7 @@ const AdminOverview: React.FC<AdminOverviewProps> = ({
                     
                     {/* List Container with Scroll */}
                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
-                        {orders.filter(o => o.status === 'pending').slice(0, 10).map(o => (
+                        {orders.filter(o => o.status === 'pending' && !o.deleted).slice(0, 10).map(o => (
                             <div 
                                 key={o.id} 
                                 onClick={() => { setGlobalSearch(o.id); setActiveTab('orders'); }}
@@ -100,7 +100,7 @@ const AdminOverview: React.FC<AdminOverviewProps> = ({
                                 <span className="text-[10px] font-bold text-[#B8860B]">R$ {o.total.toFixed(0)}</span>
                             </div>
                         ))}
-                        {orders.filter(o => o.status === 'pending').length === 0 && (
+                        {orders.filter(o => o.status === 'pending' && !o.deleted).length === 0 && (
                             <div className="text-center py-10 text-white/30 text-xs italic">Tudo em dia!</div>
                         )}
                     </div>
