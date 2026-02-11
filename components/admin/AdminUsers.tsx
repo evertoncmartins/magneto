@@ -143,20 +143,20 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
             <div className="animate-fade-in space-y-6">
                 
                 {/* Header Actions & Search */}
-                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+                <div className="flex flex-col md:flex-row gap-4 items-center">
                     <div className="relative flex-1 w-full group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={18} />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={20} />
                         <input 
                             type="text"
                             placeholder="Buscar cliente pelo nome ou e-mail..."
                             value={globalSearch}
                             onChange={(e) => setGlobalSearch(e.target.value)}
-                            className="w-full h-12 pl-12 pr-12 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B]/20 transition-all shadow-inner placeholder:text-gray-400"
+                            className="w-full h-12 pl-12 pr-12 bg-transparent border border-gray-300 rounded-lg text-sm font-medium outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B] transition-all placeholder:text-gray-400 text-[#1d1d1f]"
                         />
                         {globalSearch && (
                             <button 
                                 onClick={() => setGlobalSearch('')}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-100 rounded-full transition-all"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-50 rounded-full transition-all"
                                 title="Limpar busca"
                             >
                                 <X size={16} />
@@ -166,7 +166,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                     
                     <button 
                         onClick={() => handleOpenUserModal()}
-                        className="w-full md:w-auto bg-[#1d1d1f] text-white px-8 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 shrink-0"
+                        className="w-full md:w-auto bg-[#1d1d1f] text-white px-8 py-3.5 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 shrink-0"
                     >
                         <Plus size={16} /> Novo Cliente
                     </button>
@@ -188,12 +188,12 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                                 onClick={() => setStatusFilter(status.id as any)}
                                 className={`
                                     flex-none whitespace-nowrap
-                                    px-6 py-3 rounded-xl 
+                                    px-5 py-2.5 rounded-lg 
                                     text-[10px] font-bold uppercase tracking-widest 
                                     transition-all border flex items-center justify-center gap-2
                                     ${isActive 
                                         ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-md' 
-                                        : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                                        : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-100 hover:text-[#1d1d1f]'
                                     }
                                 `}
                             >
@@ -221,7 +221,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                         return (
                             <div 
                                 key={user.id} 
-                                className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col overflow-hidden ${isExpanded ? 'shadow-xl border-[#B8860B]/30' : (user.isAdmin ? 'border-[#B8860B]/30 shadow-md' : 'border-gray-100 shadow-sm hover:shadow-lg')}`}
+                                className={`bg-white rounded-xl border transition-all duration-300 flex flex-col overflow-hidden ${isExpanded ? 'shadow-xl border-[#B8860B]/30' : (user.isAdmin ? 'border-[#B8860B]/30 shadow-md' : 'border-gray-100 shadow-sm hover:shadow-lg')}`}
                             >
                                 <div className="flex flex-row">
                                     {/* Seção Principal (Infos) */}
@@ -230,7 +230,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                                         {/* Header: Avatar + Identificação */}
                                         <div className="flex items-start gap-4 mb-4">
                                             <div className="relative shrink-0">
-                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-serif text-lg font-bold shadow-sm ${user.isAdmin ? 'bg-[#1d1d1f] text-[#B8860B]' : 'bg-[#F5F5F7] text-[#1d1d1f]'}`}>
+                                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-serif text-lg font-bold shadow-sm ${user.isAdmin ? 'bg-[#1d1d1f] text-[#B8860B]' : 'bg-[#F5F5F7] text-[#1d1d1f]'}`}>
                                                     {user.name.charAt(0)}
                                                 </div>
                                                 <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 border-2 border-white rounded-full ${user.isActive ? 'bg-emerald-400' : 'bg-red-400'}`}></div>
@@ -281,7 +281,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                                     </div>
 
                                     {/* Barra de Ações Vertical */}
-                                    <div className="w-14 bg-gray-50/50 border-l border-gray-100 flex flex-col items-center py-4 gap-2 shrink-0 rounded-tr-2xl">
+                                    <div className="w-14 bg-gray-50/50 border-l border-gray-100 flex flex-col items-center py-4 gap-2 shrink-0 rounded-tr-xl">
                                         <ActionButton 
                                             icon={Plus} 
                                             tooltip="Novo Pedido" 
@@ -337,7 +337,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ users, globalSearch, setGlobalS
                                                         return (
                                                             <div 
                                                                 key={addr.id || idx} 
-                                                                className={`p-3 rounded-xl border transition-all bg-white relative ${isMain ? 'border-[#B8860B] ring-1 ring-[#B8860B]/20 shadow-sm' : 'border-gray-200'}`}
+                                                                className={`p-3 rounded-lg border transition-all bg-white relative ${isMain ? 'border-[#B8860B] ring-1 ring-[#B8860B]/20 shadow-sm' : 'border-gray-200'}`}
                                                             >
                                                                 <div className="flex-1 min-w-0">
                                                                     {addr.nickname && (

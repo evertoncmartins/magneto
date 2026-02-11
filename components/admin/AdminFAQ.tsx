@@ -141,21 +141,21 @@ const AdminFAQ: React.FC<AdminFAQProps> = ({ faqs, refreshData }) => {
                 {activeTab === 'questions' && (
                     <div className="space-y-6 animate-fade-in">
                         {/* Header Controls */}
-                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+                        <div className="flex flex-col md:flex-row gap-4 items-center">
                             {/* Search */}
                             <div className="relative flex-1 w-full group">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={18} />
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={20} />
                                 <input 
                                     type="text"
                                     placeholder="Buscar nas perguntas frequentes..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full h-12 pl-12 pr-12 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B]/20 transition-all shadow-inner placeholder:text-gray-400"
+                                    className="w-full h-12 pl-12 pr-12 bg-transparent border border-gray-300 rounded-lg text-sm font-medium outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B] transition-all placeholder:text-gray-400 text-[#1d1d1f]"
                                 />
                                 {searchTerm && (
                                     <button 
                                         onClick={() => setSearchTerm('')}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-100 rounded-full transition-all"
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-50 rounded-full transition-all"
                                     >
                                         <X size={16} />
                                     </button>
@@ -168,7 +168,7 @@ const AdminFAQ: React.FC<AdminFAQProps> = ({ faqs, refreshData }) => {
                                 <select
                                     value={selectedCategory}
                                     onChange={(e) => setSelectedCategory(e.target.value)}
-                                    className="w-full h-12 pl-12 pr-8 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B]/20 transition-all shadow-inner text-[#1d1d1f] appearance-none cursor-pointer"
+                                    className="w-full h-12 pl-12 pr-8 bg-transparent border border-gray-300 rounded-lg text-sm font-medium outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B] transition-all text-[#1d1d1f] appearance-none cursor-pointer"
                                 >
                                     <option value="all">Todas as Categorias</option>
                                     {categories.map(cat => (
@@ -182,7 +182,7 @@ const AdminFAQ: React.FC<AdminFAQProps> = ({ faqs, refreshData }) => {
                             
                             <button 
                                 onClick={() => openModal()} 
-                                className="w-full md:w-auto bg-[#1d1d1f] text-white px-8 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 shrink-0"
+                                className="w-full md:w-auto bg-[#1d1d1f] text-white px-8 py-3.5 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 shrink-0"
                             >
                                 <Plus size={16} /> Nova Pergunta
                             </button>
@@ -204,12 +204,12 @@ const AdminFAQ: React.FC<AdminFAQProps> = ({ faqs, refreshData }) => {
                                         onClick={() => setStatusFilter(filter.id as any)}
                                         className={`
                                             flex-none whitespace-nowrap
-                                            px-6 py-3 rounded-xl 
+                                            px-5 py-2.5 rounded-lg 
                                             text-[10px] font-bold uppercase tracking-widest 
                                             transition-all border flex items-center justify-center gap-2
                                             ${isActive 
                                                 ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-md' 
-                                                : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                                                : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-100 hover:text-[#1d1d1f]'
                                             }
                                         `}
                                     >
@@ -273,9 +273,23 @@ const AdminFAQ: React.FC<AdminFAQProps> = ({ faqs, refreshData }) => {
                                 <div className="text-center py-20 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
                                     <HelpCircle size={32} className="mx-auto mb-4 text-gray-200"/>
                                     <p className="font-medium text-sm">Nenhuma pergunta encontrada.</p>
-                                    <button onClick={() => { setSearchTerm(''); setStatusFilter('all'); setSelectedCategory('all'); }} className="text-[#B8860B] text-[10px] font-bold uppercase tracking-widest mt-2 hover:underline">
-                                        Limpar filtros
-                                    </button>
+                                    <div className="flex gap-2 justify-center mt-2">
+                                        {searchTerm && (
+                                            <button onClick={() => setSearchTerm('')} className="text-[#B8860B] text-[10px] font-bold uppercase tracking-widest hover:underline">
+                                                Limpar busca
+                                            </button>
+                                        )}
+                                        {statusFilter !== 'all' && (
+                                            <button onClick={() => setStatusFilter('all')} className="text-[#B8860B] text-[10px] font-bold uppercase tracking-widest hover:underline">
+                                                Limpar filtros de status
+                                            </button>
+                                        )}
+                                        {selectedCategory !== 'all' && (
+                                            <button onClick={() => setSelectedCategory('all')} className="text-[#B8860B] text-[10px] font-bold uppercase tracking-widest hover:underline">
+                                                Limpar filtros de categoria
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -285,20 +299,20 @@ const AdminFAQ: React.FC<AdminFAQProps> = ({ faqs, refreshData }) => {
                 {activeTab === 'categories' && (
                     <div className="space-y-6 animate-fade-in">
                         {/* Header Controls for Categories */}
-                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+                        <div className="flex flex-col md:flex-row gap-4 items-center">
                             <div className="relative flex-1 w-full group">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={18} />
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={20} />
                                 <input 
                                     type="text"
                                     placeholder="Buscar categorias..."
                                     value={catSearchTerm}
                                     onChange={(e) => setCatSearchTerm(e.target.value)}
-                                    className="w-full h-12 pl-12 pr-12 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B]/20 transition-all shadow-inner placeholder:text-gray-400"
+                                    className="w-full h-12 pl-12 pr-12 bg-transparent border border-gray-300 rounded-lg text-sm font-medium outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B] transition-all placeholder:text-gray-400 text-[#1d1d1f]"
                                 />
                                 {catSearchTerm && (
                                     <button 
                                         onClick={() => setCatSearchTerm('')}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-100 rounded-full transition-all"
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-50 rounded-full transition-all"
                                     >
                                         <X size={16} />
                                     </button>
@@ -307,7 +321,7 @@ const AdminFAQ: React.FC<AdminFAQProps> = ({ faqs, refreshData }) => {
                             
                             <button 
                                 onClick={() => openCatModal()} 
-                                className="w-full md:w-auto bg-[#1d1d1f] text-white px-8 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 shrink-0"
+                                className="w-full md:w-auto bg-[#1d1d1f] text-white px-8 py-3.5 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 shrink-0"
                             >
                                 <Plus size={16} /> Nova Categoria
                             </button>
@@ -342,6 +356,11 @@ const AdminFAQ: React.FC<AdminFAQProps> = ({ faqs, refreshData }) => {
                             {filteredCategories.length === 0 && (
                                 <div className="col-span-full py-20 text-center text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
                                     <p className="font-medium text-sm">Nenhuma categoria encontrada.</p>
+                                    {catSearchTerm && (
+                                        <button onClick={() => setCatSearchTerm('')} className="text-[#B8860B] text-[10px] font-bold uppercase tracking-widest mt-2 hover:underline">
+                                            Limpar busca
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>

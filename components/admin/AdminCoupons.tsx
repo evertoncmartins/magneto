@@ -80,30 +80,28 @@ const AdminCoupons: React.FC<AdminCouponsProps> = ({ coupons, refreshData, setIs
             <div className="space-y-6 animate-fade-in">
                 
                 <div className="flex flex-col gap-4">
-                    {/* Search Bar */}
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                         <div className="relative w-full group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={18} />
-                            <input 
-                                type="text"
-                                placeholder="Buscar cupom por código..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full h-12 pl-12 pr-12 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B]/20 transition-all shadow-inner placeholder:text-gray-400 font-bold uppercase tracking-wider"
-                            />
-                            {searchTerm && (
-                                <button 
-                                    onClick={() => setSearchTerm('')}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-100 rounded-full transition-all"
-                                    title="Limpar busca"
-                                >
-                                    <X size={16} />
-                                </button>
-                            )}
-                        </div>
+                    {/* Search Bar - Updated Visuals */}
+                    <div className="relative w-full group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={20} />
+                        <input 
+                            type="text"
+                            placeholder="Buscar cupom por código..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full h-12 pl-12 pr-12 bg-transparent border border-gray-300 rounded-lg text-sm font-medium outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B] transition-all placeholder:text-gray-400 text-[#1d1d1f] uppercase tracking-wider"
+                        />
+                        {searchTerm && (
+                            <button 
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-50 rounded-full transition-all"
+                                title="Limpar busca"
+                            >
+                                <X size={16} />
+                            </button>
+                        )}
                     </div>
 
-                    {/* Filter Tabs (Scrollable on Mobile) */}
+                    {/* Filter Tabs (Scrollable on Mobile) - Updated Visuals */}
                     <div className="flex gap-2 overflow-x-auto scrollbar-hide w-full pb-2 md:pb-0">
                         {[
                             { id: 'all', label: 'Todos' },
@@ -119,12 +117,12 @@ const AdminCoupons: React.FC<AdminCouponsProps> = ({ coupons, refreshData, setIs
                                     onClick={() => setStatusFilter(filter.id as any)}
                                     className={`
                                         flex-none whitespace-nowrap
-                                        px-6 py-3 rounded-xl 
+                                        px-5 py-2.5 rounded-lg 
                                         text-[10px] font-bold uppercase tracking-widest 
                                         transition-all border flex items-center justify-center gap-2
                                         ${isActive 
                                             ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-md' 
-                                            : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                                            : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-100 hover:text-[#1d1d1f]'
                                         }
                                     `}
                                 >

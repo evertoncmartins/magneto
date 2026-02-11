@@ -156,21 +156,21 @@ const AdminReviews: React.FC<AdminReviewsProps> = ({ reviews, refreshData }) => 
             <div className="animate-fade-in space-y-6">
                 
                 {/* CONTROLS BAR: Search & Date */}
-                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+                <div className="flex flex-col md:flex-row gap-4 items-center">
                     {/* Search */}
-                    <div className="relative w-full md:flex-1 group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={18} />
+                    <div className="relative flex-1 w-full group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={20} />
                         <input 
                             type="text"
                             placeholder="Buscar por nome do cliente..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full h-12 pl-12 pr-12 bg-[#F5F5F7] border border-transparent rounded-xl text-sm outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B]/20 transition-all shadow-inner placeholder:text-gray-400"
+                            className="w-full h-12 pl-12 pr-12 bg-transparent border border-gray-300 rounded-lg text-sm font-medium outline-none focus:bg-white focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B] transition-all placeholder:text-gray-400 text-[#1d1d1f]"
                         />
                         {searchTerm && (
                             <button 
                                 onClick={() => setSearchTerm('')}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-100 rounded-full transition-all"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 flex items-center justify-center text-gray-400 hover:text-[#B8860B] hover:bg-gray-50 rounded-full transition-all"
                             >
                                 <X size={16} />
                             </button>
@@ -178,26 +178,23 @@ const AdminReviews: React.FC<AdminReviewsProps> = ({ reviews, refreshData }) => 
                     </div>
 
                     {/* Date Filter */}
-                    <div className="flex items-center gap-2 w-full md:w-auto bg-[#F5F5F7] p-1.5 rounded-xl border border-transparent">
-                        <div className="flex items-center gap-2 px-3">
-                            <Calendar size={16} className="text-gray-400"/>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide hidden sm:inline">Período:</span>
-                        </div>
+                    <div className="flex items-center gap-2 w-full md:w-auto h-12 bg-transparent border border-gray-300 rounded-lg px-3 focus-within:border-[#B8860B] focus-within:ring-1 focus-within:ring-[#B8860B] transition-all focus-within:bg-white">
+                        <Calendar size={16} className="text-gray-400 shrink-0"/>
                         <input 
                             type="date" 
                             value={dateStart}
                             onChange={(e) => setDateStart(e.target.value)}
-                            className="bg-white border border-gray-200 text-gray-600 text-xs rounded-lg px-2 py-2 outline-none focus:border-[#B8860B] h-9"
+                            className="bg-transparent text-gray-600 text-xs outline-none h-full w-full md:w-28 cursor-pointer"
                         />
                         <span className="text-gray-300">-</span>
                         <input 
                             type="date" 
                             value={dateEnd}
                             onChange={(e) => setDateEnd(e.target.value)}
-                            className="bg-white border border-gray-200 text-gray-600 text-xs rounded-lg px-2 py-2 outline-none focus:border-[#B8860B] h-9"
+                            className="bg-transparent text-gray-600 text-xs outline-none h-full w-full md:w-28 cursor-pointer"
                         />
                         {(dateStart || dateEnd) && (
-                            <button onClick={() => { setDateStart(''); setDateEnd(''); }} className="p-2 hover:bg-white rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                            <button onClick={() => { setDateStart(''); setDateEnd(''); }} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-red-500 transition-colors shrink-0">
                                 <X size={14} />
                             </button>
                         )}
@@ -222,13 +219,13 @@ const AdminReviews: React.FC<AdminReviewsProps> = ({ reviews, refreshData }) => 
                                 onClick={() => setReviewStatusFilter(status.id as any)}
                                 className={`
                                     flex-none whitespace-nowrap
-                                    px-6 py-3 
-                                    rounded-xl 
+                                    px-5 py-2.5 
+                                    rounded-lg 
                                     text-[10px] font-bold uppercase tracking-widest 
                                     transition-all border flex items-center justify-center gap-2
                                     ${isActive 
                                         ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-md' 
-                                        : 'bg-white text-gray-400 border-gray-100 hover:text-gray-600 hover:bg-gray-50'
+                                        : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-100 hover:text-[#1d1d1f]'
                                     }
                                 `}
                             >

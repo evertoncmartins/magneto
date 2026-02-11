@@ -630,7 +630,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                     border flex items-center justify-center gap-2
                                     ${isActive 
                                         ? 'bg-[#1d1d1f] text-white border-[#1d1d1f] shadow-md' 
-                                        : 'bg-transparent text-gray-500 border-gray-300 hover:border-gray-400 hover:text-[#1d1d1f]'
+                                        : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-100 hover:text-[#1d1d1f]'
                                     }
                                 `}
                             >
@@ -666,7 +666,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                             border flex items-center justify-center gap-2
                             ${orderStatusFilter === 'deleted'
                                 ? 'bg-red-50 text-red-600 border-red-100 shadow-md' 
-                                : 'bg-transparent text-gray-500 border-gray-300 hover:text-gray-600 hover:bg-gray-50'
+                                : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-100 hover:text-gray-600'
                             }
                         `}
                     >
