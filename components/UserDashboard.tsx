@@ -447,7 +447,7 @@ const UserDashboard: React.FC<{ user: User }> = ({ user }) => {
                                                     <div>
                                                         {consent ? (
                                                             <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm text-[9px] font-bold uppercase tracking-widest">
-                                                                <Camera size={12} /> Uso Autorizado
+                                                                <Camera size={12} /> Autorizado
                                                             </span>
                                                         ) : (
                                                             <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200 text-[9px] font-bold uppercase tracking-widest"><Shield size={12} /> Privado</span>
