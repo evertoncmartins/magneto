@@ -902,7 +902,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                             <div key={kitId} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm relative overflow-hidden">
                                                                 <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
                                                                     <div className="flex items-center gap-3">
-                                                                        <div className="p-1.5 bg-[#F5F5F7] rounded-md text-[#B8860B]"><Layers size={14} /></div>
+                                                                        <div className="text-[#B8860B]"><Layers size={16} /></div>
                                                                         <div>
                                                                             <h5 className="text-[11px] font-bold text-[#1d1d1f] uppercase tracking-wider">{getKitName(kitItems.length)}</h5>
                                                                             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{kitItems.length} fotos • Fine Art</p>
@@ -910,7 +910,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                                     </div>
                                                                     <div className="flex items-center gap-3">
                                                                         {consent ? (
-                                                                            <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm text-[9px] font-bold uppercase tracking-widest"><Camera size={12} /> Autorizado</span>
+                                                                            <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm text-[9px] font-bold uppercase tracking-widest"><Camera size={12} /> Uso Autorizado</span>
                                                                         ) : (
                                                                             <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200 text-[9px] font-bold uppercase tracking-widest"><Shield size={12} /> Privado</span>
                                                                         )}
@@ -918,13 +918,13 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                                         <button 
                                                                             onClick={() => handleDownloadPhotos(order, kitId, kitItems)}
                                                                             disabled={!!downloadingOrderId}
-                                                                            className={`p-2 rounded-lg transition-all border ${isKitDownloading ? 'bg-[#1d1d1f] text-white border-[#1d1d1f]' : 'bg-white text-[#1d1d1f] border-gray-200 hover:bg-[#1d1d1f] hover:text-white shadow-sm'} disabled:opacity-50`}
+                                                                            className={`p-2 transition-all text-[#1d1d1f] hover:text-[#B8860B] disabled:opacity-50`}
                                                                             title="Baixar fotos deste kit"
                                                                         >
                                                                             {isKitDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                                                                         </button>
-                                                                        <button onClick={() => handleOpenAdminStudio(order.id, kitId)} className="text-[10px] font-bold text-[#1d1d1f] border border-[#1d1d1f] px-3 py-1.5 rounded hover:bg-[#1d1d1f] hover:text-white transition-all flex items-center gap-2">
-                                                                            <Wand2 size={12}/> Editar
+                                                                        <button onClick={() => handleOpenAdminStudio(order.id, kitId)} className="p-2 text-[#1d1d1f] hover:text-[#B8860B] transition-all" title="Editar">
+                                                                            <Wand2 size={16}/>
                                                                         </button>
                                                                     </div>
                                                                 </div>

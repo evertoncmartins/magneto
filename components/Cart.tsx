@@ -446,7 +446,7 @@ const Cart: React.FC<CartProps> = ({ items, onRemove, onRemoveBatch, onClear, us
                                                 {/* Visual Singelo de Consentimento */}
                                                 {consent ? (
                                                     <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 cursor-help" title="Você permitiu o uso em conteúdos da Magneto">
-                                                        <Camera size={10} /> Autorizado
+                                                        <Camera size={10} /> Uso Autorizado
                                                     </span>
                                                 ) : (
                                                     <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100 cursor-help" title="Uso restrito apenas para produção">
