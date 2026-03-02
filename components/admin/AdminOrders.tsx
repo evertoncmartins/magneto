@@ -1190,8 +1190,8 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                             <button onClick={() => setIsUserEditModalOpen(false)}><X size={24} className="text-gray-400 hover:text-[#1d1d1f]"/></button>
                         </div>
                         
-                        <div className="p-8 bg-[#F9F9FA]">
-                            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="p-4 md:p-8 bg-[#F9F9FA]">
+                            <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-100 shadow-sm">
                                 <h4 className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-4 flex items-center gap-2"><UserCheck size={14}/> Buscar Cliente</h4>
                                 <div className="relative">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16}/>
@@ -1228,7 +1228,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                         type="date" 
                                         value={userEditDate} 
                                         onChange={(e) => setUserEditDate(e.target.value)} 
-                                        className={inputClasses} 
+                                        className={`${inputClasses} max-w-full`} 
                                     />
                                 </div>
                             </div>
