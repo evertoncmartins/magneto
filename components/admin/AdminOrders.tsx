@@ -1225,14 +1225,16 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                     </p>
                                 </div>
                                 
-                                <div className="mt-6">
+                                <div className="mt-6 w-full max-w-full">
                                     <h4 className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest mb-2 flex items-center gap-2"><Calendar size={14}/> Data do Pedido</h4>
-                                    <input 
-                                        type="date" 
-                                        value={userEditDate} 
-                                        onChange={(e) => setUserEditDate(e.target.value)} 
-                                        className={`${inputClasses} w-full min-w-0`} 
-                                    />
+                                    <div className="relative w-full">
+                                        <input 
+                                            type="date" 
+                                            value={userEditDate} 
+                                            onChange={(e) => setUserEditDate(e.target.value)} 
+                                            className={`${inputClasses} w-full min-w-0 max-w-full box-border`} 
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
