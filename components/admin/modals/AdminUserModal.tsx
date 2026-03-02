@@ -417,7 +417,7 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
                 <div className="absolute inset-0 bg-[#1d1d1f]/40 backdrop-blur-md" onClick={onClose}></div>
                 
                 {/* Modal Container */}
-                <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] animate-fade-in border border-gray-100">
+                <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl relative overflow-hidden flex flex-col max-h-[80vh] animate-fade-in border border-gray-100">
                     
                     {/* Header */}
                     <div className="px-8 pt-8 pb-6 flex justify-between items-start bg-white z-10 border-b border-gray-50 shrink-0">
@@ -454,7 +454,7 @@ const AdminUserModal: React.FC<AdminUserModalProps> = ({ isOpen, onClose, editin
                     </div>
 
                     {/* Body com Scroll */}
-                    <div className="px-6 md:px-8 py-6 overflow-y-auto custom-scrollbar flex-1 bg-[#F9F9FA]">
+                    <div className="px-6 md:px-8 py-6 overflow-y-auto scrollbar-hide flex-1 bg-[#F9F9FA]">
                         
                         {/* TAB: DADOS PESSOAIS */}
                         {activeTab === 'profile' && (
