@@ -828,8 +828,11 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                                         <Calendar size={14} className="text-gray-300"/>
                                                         <span className="font-medium">{order.date}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                                        <span className="font-bold text-xl text-[#1d1d1f]">R$ {order.total.toFixed(2)}</span>
+                                                    <div className="flex items-center gap-2 mt-2">
+                                                        <div className="inline-flex items-center gap-1.5 bg-emerald-50/50 text-emerald-900 px-2.5 py-1 rounded-md border border-emerald-100/50">
+                                                            <DollarSign size={14} strokeWidth={2.5} className="text-emerald-600" />
+                                                            <span className="font-bold text-sm">R$ {order.total.toFixed(2)}</span>
+                                                        </div>
                                                     </div>
                                                     {order.shippingAddress && (
                                                         <div className="flex items-center gap-2 text-xs text-gray-500">
