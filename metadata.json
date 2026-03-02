@@ -1,5 +1,5 @@
 {
-  "name": "Remix: Magneto 2",
+  "name": "Magneto",
   "description": "A responsive B2C e-commerce platform for customizing and ordering 50mm x 50mm photo fridge magnets. Features image cropping, realtime pricing, and admin dashboard.",
   "requestFramePermissions": []
 }
