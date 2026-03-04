@@ -44,6 +44,26 @@ const AdminReviews: React.FC<AdminReviewsProps> = ({ reviews, refreshData }) => 
         setCurrentPage(1);
     }, [searchTerm, reviewStatusFilter, dateStart, dateEnd, itemsPerPage]);
 
+    // Initialize Date Range
+    const [hasInitializedDates, setHasInitializedDates] = useState(false);
+
+    useEffect(() => {
+        if (reviews.length > 0 && !hasInitializedDates) {
+            const sortedReviews = [...reviews].sort((a, b) => {
+                return parseDate(a.createdAt).getTime() - parseDate(b.createdAt).getTime();
+            });
+            
+            if (sortedReviews.length > 0) {
+                const firstDate = parseDate(sortedReviews[0].createdAt);
+                const today = new Date();
+                
+                setDateStart(firstDate.toISOString().split('T')[0]);
+                setDateEnd(today.toISOString().split('T')[0]);
+                setHasInitializedDates(true);
+            }
+        }
+    }, [reviews, hasInitializedDates]);
+
     // Helper to parse "DD/MM/YYYY" to Date object
     const parseDate = (dateStr: string) => {
         const parts = dateStr.split('/');
@@ -184,14 +204,16 @@ const AdminReviews: React.FC<AdminReviewsProps> = ({ reviews, refreshData }) => 
                             type="date" 
                             value={dateStart}
                             onChange={(e) => setDateStart(e.target.value)}
-                            className="bg-transparent text-gray-600 text-xs outline-none h-full w-full md:w-28 cursor-pointer"
+                            max={new Date().toISOString().split('T')[0]}
+                            className="bg-transparent text-gray-500 text-xs font-normal outline-none h-full w-full md:w-28 cursor-pointer placeholder-gray-400"
                         />
                         <span className="text-gray-300">-</span>
                         <input 
                             type="date" 
                             value={dateEnd}
                             onChange={(e) => setDateEnd(e.target.value)}
-                            className="bg-transparent text-gray-600 text-xs outline-none h-full w-full md:w-28 cursor-pointer"
+                            max={new Date().toISOString().split('T')[0]}
+                            className="bg-transparent text-gray-500 text-xs font-normal outline-none h-full w-full md:w-28 cursor-pointer placeholder-gray-400"
                         />
                         {(dateStart || dateEnd) && (
                             <button onClick={() => { setDateStart(''); setDateEnd(''); }} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-red-500 transition-colors shrink-0">

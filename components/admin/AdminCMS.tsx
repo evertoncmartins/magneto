@@ -9,7 +9,8 @@ import {
     Phone, Mail, Instagram, Facebook, Twitter, Award, Clock, Calendar, Search, 
     User, Users, Sun, Moon, Droplet, Smile, ThumbsUp, Send, Package, Tag, AlertCircle,
     Settings, ListOrdered, FileText, Recycle, Share2, RefreshCw, CheckCircle,
-    Linkedin, Youtube, Github, Twitch, MessageCircle, Music, Video, Smartphone
+    Linkedin, Youtube, Github, Twitch, MessageCircle, Music, Video, Smartphone,
+    ArrowUp, ArrowDown
 } from 'lucide-react';
 import { PageContent, PageField, PageSection } from '../../types';
 import { updateSiteContent } from '../../services/mockService';
@@ -197,12 +198,16 @@ interface SocialSortableItemProps {
     handleIconUpdate: (key: string, icon: string) => void;
     handleLabelUpdate: (key: string, label: string) => void;
     getVal: (key: string) => string;
+    index: number;
+    totalItems: number;
+    moveItem: (index: number, direction: 'up' | 'down') => void;
 }
 
 const SocialSortableItem = ({
     itemKey, config, isCustom, section, pageId,
     handleCmsUpdate, handleDeleteSocial, editingIconKey,
-    setEditingIconKey, handleIconUpdate, handleLabelUpdate, getVal
+    setEditingIconKey, handleIconUpdate, handleLabelUpdate, getVal,
+    index, totalItems, moveItem
 }: SocialSortableItemProps) => {
     const controls = useDragControls();
     const isEditing = editingIconKey === itemKey;
@@ -231,6 +236,11 @@ const SocialSortableItem = ({
                         <GripVertical size={20} />
                     </div>
                     
+                    <div className="flex flex-col gap-0.5 mr-1">
+                        <button type="button" onClick={() => moveItem(index, 'up')} disabled={index === 0} className="text-gray-300 hover:text-[#1d1d1f] disabled:opacity-20 transition-colors"><ArrowUp size={12}/></button>
+                        <button type="button" onClick={() => moveItem(index, 'down')} disabled={index === totalItems - 1} className="text-gray-300 hover:text-[#1d1d1f] disabled:opacity-20 transition-colors"><ArrowDown size={12}/></button>
+                    </div>
+
                     <div className="relative shrink-0">
                         <div 
                             onClick={() => setEditingIconKey(isEditing ? null : itemKey)}
@@ -289,12 +299,16 @@ interface ContactSortableItemProps {
     setEditingIconKey: (key: string | null) => void;
     handleIconUpdate: (key: string, icon: string) => void;
     getVal: (key: string) => string;
+    index: number;
+    totalItems: number;
+    moveItem: (index: number, direction: 'up' | 'down') => void;
 }
 
 const ContactSortableItem = ({
     itemKey, config, section, pageId,
     handleCmsUpdate, editingIconKey,
-    setEditingIconKey, handleIconUpdate, getVal
+    setEditingIconKey, handleIconUpdate, getVal,
+    index, totalItems, moveItem
 }: ContactSortableItemProps) => {
     const controls = useDragControls();
     const isEditing = editingIconKey === itemKey;
@@ -321,6 +335,11 @@ const ContactSortableItem = ({
                         className={`text-gray-300 transition-colors shrink-0 touch-none ${isEditing ? 'opacity-30 cursor-not-allowed' : 'group-hover:text-[#1d1d1f] cursor-grab'}`}
                     >
                         <GripVertical size={20} />
+                    </div>
+
+                    <div className="flex flex-col gap-0.5 mr-1">
+                        <button type="button" onClick={() => moveItem(index, 'up')} disabled={index === 0} className="text-gray-300 hover:text-[#1d1d1f] disabled:opacity-20 transition-colors"><ArrowUp size={12}/></button>
+                        <button type="button" onClick={() => moveItem(index, 'down')} disabled={index === totalItems - 1} className="text-gray-300 hover:text-[#1d1d1f] disabled:opacity-20 transition-colors"><ArrowDown size={12}/></button>
                     </div>
                     
                     <div className="relative">
@@ -1889,7 +1908,7 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                         setSocialOrder(newOrder);
                         handleCmsUpdate('footer', 'social', 'social_order', newOrder.join(','));
                     }} className="space-y-3">
-                        {socialOrder.map((itemKey) => {
+                        {socialOrder.map((itemKey, index) => {
                             let config = itemsMap[itemKey];
                             let isCustom = false;
 
@@ -1926,6 +1945,9 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                                     handleIconUpdate={handleIconUpdate}
                                     handleLabelUpdate={handleLabelUpdate}
                                     getVal={getVal}
+                                    index={index}
+                                    totalItems={socialOrder.length}
+                                    moveItem={moveSocial}
                                 />
                             );
                         })}
@@ -2042,7 +2064,7 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                         setContactOrder(newOrder);
                         handleCmsUpdate('contact', 'info', 'contact_order', newOrder.join(','));
                     }} className="space-y-3">
-                        {contactOrder.map((itemKey) => {
+                        {contactOrder.map((itemKey, index) => {
                             const config = itemsMap[itemKey];
                             if (!config) return null;
 
@@ -2058,6 +2080,9 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                                     setEditingIconKey={setEditingIconKey}
                                     handleIconUpdate={handleIconUpdate}
                                     getVal={getVal}
+                                    index={index}
+                                    totalItems={contactOrder.length}
+                                    moveItem={moveContact}
                                 />
                             );
                         })}
@@ -2120,6 +2145,10 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                                 <div key={itemKey} draggable onDragStart={() => handleDragStart(index)} onDragOver={handleDragOver} onDrop={() => handleDrop(index)} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all cursor-move group">
                                     <div className="flex items-center gap-3 w-full sm:w-auto">
                                         <div className="text-gray-300 group-hover:text-[#1d1d1f] transition-colors cursor-grab shrink-0"><GripVertical size={20} /></div>
+                                        <div className="flex flex-col gap-0.5">
+                                            <button type="button" onClick={() => moveStat(index, 'up')} disabled={index === 0} className="text-gray-300 hover:text-[#1d1d1f] disabled:opacity-20 transition-colors"><ArrowUp size={12}/></button>
+                                            <button type="button" onClick={() => moveStat(index, 'down')} disabled={index === statsOrder.length - 1} className="text-gray-300 hover:text-[#1d1d1f] disabled:opacity-20 transition-colors"><ArrowDown size={12}/></button>
+                                        </div>
                                         <div className="flex-1 sm:flex-none"><p className="text-xs font-bold text-[#1d1d1f] uppercase tracking-wide">{config.label}</p></div>
                                     </div>
                                     <div className="flex items-center justify-between gap-4 w-full sm:w-auto sm:ml-auto">
@@ -2138,6 +2167,42 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                 </div>
             </div>
         );
+    };
+
+    const moveStat = (index: number, direction: 'up' | 'down') => {
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= statsOrder.length) return;
+
+        const updatedOrder = [...statsOrder];
+        const [movedItem] = updatedOrder.splice(index, 1);
+        updatedOrder.splice(newIndex, 0, movedItem);
+
+        setStatsOrder(updatedOrder);
+        handleCmsUpdate('stats', 'config', 'stats_order', updatedOrder.join(','));
+    };
+
+    const moveContact = (index: number, direction: 'up' | 'down') => {
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= contactOrder.length) return;
+
+        const updatedOrder = [...contactOrder];
+        const [movedItem] = updatedOrder.splice(index, 1);
+        updatedOrder.splice(newIndex, 0, movedItem);
+
+        setContactOrder(updatedOrder);
+        handleCmsUpdate('contact', 'info', 'contact_order', updatedOrder.join(','));
+    };
+
+    const moveSocial = (index: number, direction: 'up' | 'down') => {
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= socialOrder.length) return;
+
+        const updatedOrder = [...socialOrder];
+        const [movedItem] = updatedOrder.splice(index, 1);
+        updatedOrder.splice(newIndex, 0, movedItem);
+
+        setSocialOrder(updatedOrder);
+        handleCmsUpdate('footer', 'social', 'social_order', updatedOrder.join(','));
     };
 
     const handleDragStart = (index: number) => setDraggedItemIndex(index);
@@ -2339,11 +2404,11 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                 )}
             </div>
 
-            <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-40">
+            <div className="md:hidden fixed bottom-4 left-4 right-4 z-40">
                 <button 
                     onClick={handleSaveCms} 
                     disabled={!isDirty || isProcessingImage}
-                    className={`w-full py-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg ${isDirty ? 'bg-[#B8860B] text-white active:bg-[#966d09]' : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'}`}
+                    className={`w-full py-4 rounded-md text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg ${isDirty ? 'bg-[#B8860B] text-white active:bg-[#966d09]' : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'}`}
                 >
                     {isProcessingImage ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>} 
                     {isProcessingImage ? 'Processando...' : isDirty ? 'Salvar Alterações' : 'Salvo'}

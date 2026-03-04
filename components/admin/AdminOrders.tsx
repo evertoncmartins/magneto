@@ -87,6 +87,10 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
     const [zipProgress, setZipProgress] = useState(0);
     const [tiers, setTiers] = useState(getPricingRules());
     
+    // Date Filter State
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -168,7 +172,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
     // Reset pagination when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [globalSearch, orderStatusFilter, itemsPerPage]);
+    }, [globalSearch, orderStatusFilter, itemsPerPage, startDate, endDate]);
 
     // Counts Calculation
     const counts = useMemo(() => {
@@ -197,6 +201,26 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
         return clean;
     };
 
+    // Set initial date range
+    const [hasSetInitialDates, setHasSetInitialDates] = useState(false);
+    
+    useEffect(() => {
+        if (!hasSetInitialDates && orders.length > 0) {
+            const sortedOrders = [...orders].sort((a, b) => {
+                const dateA = parseDate(a.date);
+                const dateB = parseDate(b.date);
+                return dateA.getTime() - dateB.getTime();
+            });
+
+            if (sortedOrders.length > 0) {
+                const firstOrderDate = parseDate(sortedOrders[0].date);
+                setStartDate(formatDateForInput(firstOrderDate));
+            }
+            setEndDate(formatDateForInput(new Date()));
+            setHasSetInitialDates(true);
+        }
+    }, [orders, hasSetInitialDates]);
+
     const filteredOrders = useMemo(() => {
         return orders.filter(o => {
             // 1. Filter Deleted vs Active
@@ -215,9 +239,24 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
             
             if (!matchesSearch) return false;
 
+            // 3. Date Range Filter
+            if (startDate || endDate) {
+                const orderDate = parseDate(o.date);
+                
+                if (startDate) {
+                    const start = new Date(startDate);
+                    if (orderDate < start) return false;
+                }
+                
+                if (endDate) {
+                    const end = new Date(endDate);
+                    if (orderDate > end) return false;
+                }
+            }
+
             return true;
         });
-    }, [orders, globalSearch, orderStatusFilter]);
+    }, [orders, globalSearch, orderStatusFilter, startDate, endDate]);
 
     // --- PAGINATION LOGIC ---
     const indexOfLastOrder = currentPage * itemsPerPage;
@@ -685,7 +724,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                 {/* CONTROLS BAR: Search */}
                 <div className="flex flex-col lg:flex-row gap-4 items-center w-full">
                     {/* Search */}
-                    <div className="relative w-full group shrink-0">
+                    <div className="relative w-full group shrink-0 lg:w-auto lg:flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#B8860B] transition-colors" size={20} />
                         <input 
                             type="text"
@@ -701,6 +740,35 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                                 title="Limpar busca"
                             >
                                 <X size={16} />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Date Range Filter */}
+                    <div className="flex items-center gap-2 bg-transparent border border-gray-300 rounded-lg px-3 h-12 focus-within:bg-white focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400 transition-all shrink-0 w-full lg:w-auto">
+                        <Calendar size={18} className="text-gray-400 shrink-0" />
+                        <input 
+                            type="date" 
+                            value={startDate}
+                            max={formatDateForInput(new Date())}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="bg-transparent border-none outline-none text-sm text-gray-500 w-full lg:w-auto placeholder:text-gray-400 font-normal"
+                        />
+                        <span className="text-gray-400">-</span>
+                        <input 
+                            type="date" 
+                            value={endDate}
+                            max={formatDateForInput(new Date())}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="bg-transparent border-none outline-none text-sm text-gray-500 w-full lg:w-auto placeholder:text-gray-400 font-normal"
+                        />
+                        {(startDate || endDate) && (
+                            <button 
+                                onClick={() => { setStartDate(''); setEndDate(''); }}
+                                className="p-1 hover:bg-gray-100 rounded-full text-gray-400 transition-colors shrink-0"
+                                title="Limpar datas"
+                            >
+                                <X size={14} />
                             </button>
                         )}
                     </div>
@@ -780,7 +848,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ orders, globalSearch, setGlob
                     {currentOrders.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
                             <p className="text-gray-400 text-sm font-medium">Nenhum pedido encontrado com estes filtros.</p>
-                            <button onClick={() => { setGlobalSearch(''); setOrderStatusFilter('all'); }} className="mt-3 text-[#B8860B] text-xs font-bold uppercase tracking-widest hover:underline">
+                            <button onClick={() => { setGlobalSearch(''); setOrderStatusFilter('all'); setStartDate(''); setEndDate(''); }} className="mt-3 text-[#B8860B] text-xs font-bold uppercase tracking-widest hover:underline">
                                 Limpar filtros
                             </button>
                         </div>
