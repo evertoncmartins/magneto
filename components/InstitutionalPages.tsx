@@ -1,13 +1,14 @@
 
 import React, { useEffect } from 'react';
 import { LayoutGrid, Layers, Leaf, Heart, ArrowRight, Truck, Info, Check, Sparkles } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getSiteContent } from '../services/mockService';
 
 // Helper para renderizar ícone dinâmico
 const CMSIcon = ({ name, size = 32 }: { name: string, size?: number }) => {
-    const icons: any = { Layers, Leaf, Heart, Truck, LayoutGrid, Info, Check };
-    const IconComponent = icons[name] || LayoutGrid;
+    // @ts-ignore
+    const IconComponent = LucideIcons[name] || LayoutGrid;
     return <IconComponent size={size} strokeWidth={1.5} />;
 };
 
@@ -198,13 +199,40 @@ export const ProductionProcess = () => {
 
 export const Sustainability = () => {
     useEffect(() => { window.scrollTo(0, 0); }, []);
-    const { getField } = usePageContent('sustainability');
+    
+    // Get full content to parse dynamic points
+    const content = getSiteContent();
+    const page = content.find(p => p.id === 'sustainability');
+    const pointsSection = page?.sections.find(s => s.id === 'points');
+    
+    // Helper for other sections
+    const getField = (sectionId: string, key: string) => {
+        const section = page?.sections.find(s => s.id === sectionId);
+        return section?.fields.find(f => f.key === key)?.value || '';
+    };
 
-    const points = [1, 2, 3, 4].map(num => ({
-        title: getField('points', `p${num}_title`),
-        desc: getField('points', `p${num}_desc`),
-        icon: getField('points', `p${num}_icon`),
-    }));
+    // Parse dynamic points
+    const pointsMap = new Map<number, { title: string, desc: string, icon: string }>();
+    
+    if (pointsSection) {
+        pointsSection.fields.forEach(field => {
+            const match = field.key.match(/^p(\d+)_/);
+            if (match) {
+                const num = parseInt(match[1]);
+                const current = pointsMap.get(num) || { title: '', desc: '', icon: '' };
+                
+                if (field.key.endsWith('_title')) current.title = field.value;
+                if (field.key.endsWith('_desc')) current.desc = field.value;
+                if (field.key.endsWith('_icon')) current.icon = field.value;
+                
+                pointsMap.set(num, current);
+            }
+        });
+    }
+
+    const points = Array.from(pointsMap.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([id, data]) => ({ id, ...data }));
 
     return (
         <div className="bg-white">
@@ -220,8 +248,8 @@ export const Sustainability = () => {
                 </p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-                    {points.map((p, i) => (
-                        <div key={i} className="flex gap-6 group p-6 rounded-xl hover:bg-[#F9F9FA] transition-colors border border-transparent hover:border-gray-100">
+                    {points.map((p) => (
+                        <div key={p.id} className="flex gap-6 group p-6 rounded-xl hover:bg-[#F9F9FA] transition-colors border border-transparent hover:border-gray-100">
                             <div className="shrink-0 text-[#B8860B] bg-white p-3 rounded-full shadow-sm border border-gray-50 h-fit group-hover:scale-110 transition-transform">
                                 <CMSIcon name={p.icon} size={24}/>
                             </div>

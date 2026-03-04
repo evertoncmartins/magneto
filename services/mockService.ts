@@ -1045,8 +1045,10 @@ const INITIAL_CMS_CONTENT: PageContent[] = [
                     { key: 'section_2_text', label: 'Seção 2: Texto', type: 'textarea', value: 'Caso o produto apresente defeito de impressão, corte incorreto ou avaria no transporte, garantimos a troca imediata ou reembolso integral, conforme Art. 18 do CDC.' },
                     { key: 'info_1_title', label: 'Info Box 1: Título', type: 'text', value: 'Prazo Legal' },
                     { key: 'info_1_desc', label: 'Info Box 1: Texto', type: 'textarea', value: 'O cliente tem até 90 dias corridos para reclamar de vícios aparentes ou de fácil constatação no produto recebido.' },
+                    { key: 'info_1_icon', label: 'Info Box 1: Ícone', type: 'text', value: 'Clock' },
                     { key: 'info_2_title', label: 'Info Box 2: Título', type: 'text', value: 'Procedimento' },
                     { key: 'info_2_desc', label: 'Info Box 2: Texto', type: 'textarea', value: 'Envie fotos do defeito para contato@magneto.com. Faremos uma análise técnica em até 48 horas úteis.' },
+                    { key: 'info_2_icon', label: 'Info Box 2: Ícone', type: 'text', value: 'CheckCircle' },
                     { key: 'section_3_title', label: 'Seção 3: Título', type: 'text', value: '3. Erro no Endereço' },
                     { key: 'section_3_text', label: 'Seção 3: Texto', type: 'textarea', value: 'Caso o pedido retorne devido a endereço incorreto fornecido pelo cliente no momento da compra, será cobrado um novo frete para o reenvio da mercadoria.' }
                 ]
@@ -1067,8 +1069,10 @@ const INITIAL_CMS_CONTENT: PageContent[] = [
                     { key: 'section_2_text', label: 'Seção 2: Texto', type: 'textarea', value: 'O prazo de entrega varia conforme a região e a modalidade escolhida. O prazo total informado no carrinho já soma o tempo de produção + tempo de transporte.' },
                     { key: 'info_1_title', label: 'Info Box 1: Título', type: 'text', value: 'Correios SEDEX' },
                     { key: 'info_1_desc', label: 'Info Box 1: Texto', type: 'textarea', value: 'Modalidade expressa recomendada para quem tem pressa. Entrega em capitais geralmente ocorre entre 1 a 3 dias úteis após a postagem.' },
+                    { key: 'info_1_icon', label: 'Info Box 1: Ícone', type: 'text', value: 'Truck' },
                     { key: 'info_2_title', label: 'Info Box 2: Título', type: 'text', value: 'Correios PAC' },
                     { key: 'info_2_desc', label: 'Info Box 2: Texto', type: 'textarea', value: 'Modalidade econômica para envios não urgentes. O prazo é maior, porém o custo do frete é reduzido.' },
+                    { key: 'info_2_icon', label: 'Info Box 2: Ícone', type: 'text', value: 'Package' },
                     { key: 'section_3_title', label: 'Seção 3: Título', type: 'text', value: '3. Atrasos e Extravios' },
                     { key: 'section_3_text', label: 'Seção 3: Texto', type: 'textarea', value: 'A Magneto monitora todos os envios. Em caso de extravio confirmado pela transportadora, faremos a reprodução e reenvio do pedido sem custo adicional e com prioridade na produção, ou o reembolso integral, conforme preferência do cliente.' }
                 ]
@@ -1102,7 +1106,59 @@ const INITIAL_CMS_CONTENT: PageContent[] = [
         ]
     }
 ];
-let SITE_CONTENT = retrieve('magneto_cms', INITIAL_CMS_CONTENT);
+// Helper para merge de conteúdo CMS (Garante que novos campos sejam adicionados ao estado persistido)
+const mergeCmsContent = (persisted: PageContent[], initial: PageContent[]): PageContent[] => {
+    if (!persisted || persisted.length === 0) return initial;
+    
+    const mergedContent = [...persisted];
+
+    initial.forEach(initialPage => {
+        const persistedPageIndex = mergedContent.findIndex(p => p.id === initialPage.id);
+        
+        if (persistedPageIndex === -1) {
+            // Nova página no código, adiciona ao persistido
+            mergedContent.push(initialPage);
+        } else {
+            // Página existe, merge seções
+            const persistedPage = mergedContent[persistedPageIndex];
+            const mergedSections = [...persistedPage.sections];
+
+            initialPage.sections.forEach(initialSection => {
+                const persistedSectionIndex = mergedSections.findIndex(s => s.id === initialSection.id);
+
+                if (persistedSectionIndex === -1) {
+                    // Nova seção no código, adiciona ao persistido
+                    mergedSections.push(initialSection);
+                } else {
+                    // Seção existe, merge campos
+                    const persistedSection = mergedSections[persistedSectionIndex];
+                    const mergedFields = [...persistedSection.fields];
+
+                    initialSection.fields.forEach(initialField => {
+                        const existingField = mergedFields.find(f => f.key === initialField.key);
+                        if (!existingField) {
+                            mergedFields.push(initialField);
+                        }
+                    });
+                    
+                    mergedSections[persistedSectionIndex] = {
+                        ...persistedSection,
+                        fields: mergedFields
+                    };
+                }
+            });
+
+            mergedContent[persistedPageIndex] = {
+                ...persistedPage,
+                sections: mergedSections
+            };
+        }
+    });
+
+    return mergedContent;
+};
+
+let SITE_CONTENT = mergeCmsContent(retrieve('magneto_cms', INITIAL_CMS_CONTENT), INITIAL_CMS_CONTENT);
 
 export const getSiteContent = (): PageContent[] => SITE_CONTENT;
 

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Reorder, useDragControls } from 'framer-motion';
 import { 
     Save, Image as ImageIcon, GripVertical, ChevronDown, Check, LayoutGrid, Upload, Loader2, Plus, Trash2, X,
@@ -7,7 +8,7 @@ import {
     Leaf, Heart, Truck, Layers, Info, Star, Shield, Gift, Camera, Zap, Globe, MapPin, 
     Phone, Mail, Instagram, Facebook, Twitter, Award, Clock, Calendar, Search, 
     User, Users, Sun, Moon, Droplet, Smile, ThumbsUp, Send, Package, Tag, AlertCircle,
-    Settings, ListOrdered, FileText, Recycle, Share2,
+    Settings, ListOrdered, FileText, Recycle, Share2, RefreshCw, CheckCircle,
     Linkedin, Youtube, Github, Twitch, MessageCircle, Music, Video, Smartphone
 } from 'lucide-react';
 import { PageContent, PageField, PageSection } from '../../types';
@@ -31,6 +32,7 @@ const AVAILABLE_ICONS = [
     { id: 'Package', icon: Package },
     { id: 'Info', icon: Info },
     { id: 'Check', icon: Check },
+    { id: 'CheckCircle', icon: CheckCircle },
     { id: 'Star', icon: Star },
     { id: 'Shield', icon: Shield },
     { id: 'Gift', icon: Gift },
@@ -163,31 +165,14 @@ const InlineIconPicker = ({
     onSelect: (icon: string) => void; 
     currentIcon: string; 
 }) => {
-    const [searchTerm, setSearchTerm] = useState('');
-    
-    const filteredIcons = AVAILABLE_ICONS.filter(icon => 
-        icon.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
     return (
-        <div className="animate-fade-in cursor-default" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-3">
-                <Search size={14} className="text-gray-400" />
-                <input 
-                    className="flex-1 bg-transparent border-b border-gray-200 text-xs py-1 outline-none focus:border-[#B8860B] text-[#1d1d1f] placeholder:text-gray-400"
-                    placeholder="Filtrar ícones..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    autoFocus
-                />
-            </div>
-            
+        <div className="cursor-default" onClick={e => e.stopPropagation()}>
             <div className="grid grid-cols-8 sm:grid-cols-12 gap-2 max-h-[140px] overflow-y-auto custom-scrollbar p-1">
-                {filteredIcons.map(item => (
+                {AVAILABLE_ICONS.map(item => (
                     <button 
                         key={item.id}
                         onClick={() => onSelect(item.id)}
-                        className={`aspect-square flex items-center justify-center rounded-md transition-all duration-200 ${currentIcon === item.id ? 'bg-[#1d1d1f] text-white shadow-sm scale-110' : 'text-gray-400 hover:bg-white hover:text-[#B8860B] hover:shadow-sm'}`}
+                        className={`aspect-square flex items-center justify-center rounded-md ${currentIcon === item.id ? 'bg-[#1d1d1f] text-white shadow-sm' : 'text-gray-400 hover:bg-white hover:text-[#B8860B] hover:shadow-sm'}`}
                         title={item.id}
                         type="button"
                     >
@@ -195,9 +180,6 @@ const InlineIconPicker = ({
                     </button>
                 ))}
             </div>
-             {filteredIcons.length === 0 && (
-                <p className="text-center text-[10px] text-gray-400 py-2">Sem resultados.</p>
-            )}
         </div>
     );
 };
@@ -231,6 +213,7 @@ const SocialSortableItem = ({
     return (
         <Reorder.Item
             value={itemKey}
+            layout="position"
             dragListener={false}
             dragControls={controls}
             className={`bg-white border border-gray-200 rounded-xl transition-all group relative overflow-hidden mb-3 ${isEditing ? 'ring-1 ring-[#B8860B] shadow-md' : 'hover:shadow-md'}`}
@@ -273,7 +256,7 @@ const SocialSortableItem = ({
             </div>
 
             {isEditing && (
-                <div className="bg-gray-50/80 border-t border-gray-100 p-4 animate-fade-in">
+                <div className="bg-gray-50/80 border-t border-gray-100 p-4">
                     <InlineIconPicker 
                         onSelect={(val) => handleIconUpdate(itemKey, val)}
                         currentIcon={currentIconId}
@@ -314,6 +297,7 @@ const ContactSortableItem = ({
     return (
         <Reorder.Item
             value={itemKey}
+            layout="position"
             dragListener={false}
             dragControls={controls}
             className={`bg-white border border-gray-200 rounded-xl transition-all group relative overflow-hidden mb-3 ${isEditing ? 'ring-1 ring-[#B8860B] shadow-md' : 'hover:shadow-md'}`}
@@ -365,7 +349,7 @@ const ContactSortableItem = ({
             </div>
 
             {isEditing && (
-                <div className="bg-gray-50/80 border-t border-gray-100 p-4 animate-fade-in">
+                <div className="bg-gray-50/80 border-t border-gray-100 p-4">
                     <InlineIconPicker 
                         onSelect={(val) => handleIconUpdate(itemKey, val)}
                         currentIcon={currentIconId}
@@ -394,6 +378,21 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
     
     // Estado para edição de ícone de rede social existente
     const [editingIconKey, setEditingIconKey] = useState<string | null>(null);
+
+    // Estado para exclusão de seção da Política de Privacidade
+    const [privacySectionToDelete, setPrivacySectionToDelete] = useState<number | null>(null);
+
+    // Estado para exclusão de seção dos Termos de Uso
+    const [termsSectionToDelete, setTermsSectionToDelete] = useState<number | null>(null);
+
+    // Estado para exclusão de seção da Política de Troca
+    const [exchangeSectionToDelete, setExchangeSectionToDelete] = useState<number | null>(null);
+
+    // Estado para exclusão de seção de Envios
+    const [shippingSectionToDelete, setShippingSectionToDelete] = useState<number | null>(null);
+
+    // Estado para exclusão de ponto sustentável
+    const [sustainabilityPointToDelete, setSustainabilityPointToDelete] = useState<number | null>(null);
 
     useEffect(() => {
         setSelectedPageId(initialPageId);
@@ -610,6 +609,868 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
         );
     };
 
+    // Renderização Especial para Termos de Uso
+    const renderTermsOfUse = (pageId: string, section: PageSection) => {
+        const intro = section.fields.find(f => f.key === 'intro');
+        const highlight = section.fields.find(f => f.key === 'highlight');
+        
+        // Agrupa campos por seção (section_1_, section_2_, etc.)
+        const sectionsMap = new Map<number, PageField[]>();
+        
+        section.fields.forEach(field => {
+            const match = field.key.match(/^section_(\d+)_/);
+            if (match) {
+                const sectionNum = parseInt(match[1]);
+                const currentFields = sectionsMap.get(sectionNum) || [];
+                currentFields.push(field);
+                sectionsMap.set(sectionNum, currentFields);
+            }
+        });
+
+        // Converte para array e ordena
+        const sortedSections = Array.from(sectionsMap.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([num, fields]) => ({ num, fields }));
+
+        const handleAddSection = () => {
+            const nextNum = sortedSections.length > 0 
+                ? Math.max(...sortedSections.map(s => s.num)) + 1 
+                : 1;
+            
+            const newFields: PageField[] = [
+                { key: `section_${nextNum}_title`, label: `Seção ${nextNum}: Título`, type: 'text', value: `Nova Seção ${nextNum}` },
+                { key: `section_${nextNum}_text`, label: `Seção ${nextNum}: Texto`, type: 'textarea', value: '' }
+            ];
+
+            const newContent = cmsContent.map(page => {
+                if (page.id === pageId) {
+                    return {
+                        ...page,
+                        sections: page.sections.map(sec => {
+                            if (sec.id === section.id) {
+                                return { ...sec, fields: [...sec.fields, ...newFields] };
+                            }
+                            return sec;
+                        })
+                    };
+                }
+                return page;
+            });
+            
+            setCmsContent(newContent);
+            setIsDirty(true);
+        };
+
+        const confirmRemoveSection = () => {
+             if (termsSectionToDelete === null) return;
+
+             const newContent = cmsContent.map(page => {
+                if (page.id === pageId) {
+                    return {
+                        ...page,
+                        sections: page.sections.map(sec => {
+                            if (sec.id === section.id) {
+                                return { 
+                                    ...sec, 
+                                    fields: sec.fields.filter(f => !f.key.startsWith(`section_${termsSectionToDelete}_`)) 
+                                };
+                            }
+                            return sec;
+                        })
+                    };
+                }
+                return page;
+            });
+            
+            setCmsContent(newContent);
+            setIsDirty(true);
+            setTermsSectionToDelete(null);
+        }
+
+        return (
+            <div className="space-y-8">
+                {/* Introdução */}
+                {intro && (
+                    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#1d1d1f] text-[#B8860B] flex items-center justify-center font-bold text-xs shadow-sm">
+                                <Info size={16} />
+                            </div>
+                            <h4 className="font-serif font-bold text-base text-[#1d1d1f]">Introdução</h4>
+                        </div>
+                        <div className="p-6">
+                            {renderField(pageId, section.id, intro)}
+                        </div>
+                    </div>
+                )}
+
+                {/* Seções Dinâmicas */}
+                {sortedSections.map(({ num, fields }) => (
+                    <div key={num} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden group relative">
+                        <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-[#1d1d1f] text-[#B8860B] flex items-center justify-center font-bold text-xs shadow-sm">
+                                    {num.toString().padStart(2, '0')}
+                                </div>
+                                <h4 className="font-serif font-bold text-base text-[#1d1d1f]">Seção {num}</h4>
+                            </div>
+                            <button 
+                                onClick={() => setTermsSectionToDelete(num)}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                title="Remover Seção"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            {fields.map(field => renderField(pageId, section.id, field))}
+                            
+                            {/* Highlight (apenas na seção 2, se existir) */}
+                            {num === 2 && highlight && (
+                                <div className="mt-6 pt-6 border-t border-gray-100">
+                                    <div className="mb-4 flex items-center gap-2 text-red-500">
+                                        <AlertCircle size={16} />
+                                        <span className="text-xs font-bold uppercase tracking-widest">Destaque (Proibido)</span>
+                                    </div>
+                                    {renderField(pageId, section.id, highlight)}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
+
+                {/* Botão Adicionar Seção */}
+                <button 
+                    onClick={handleAddSection}
+                    className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-2 text-gray-400 hover:border-[#B8860B] hover:text-[#B8860B] hover:bg-[#B8860B]/5 transition-all group"
+                >
+                    <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-[#B8860B] text-gray-400 group-hover:text-white flex items-center justify-center transition-colors">
+                        <Plus size={16} />
+                    </div>
+                    <span className="text-sm font-bold uppercase tracking-widest">Adicionar Nova Seção</span>
+                </button>
+
+                {/* Modal de Confirmação de Exclusão */}
+                {termsSectionToDelete !== null && createPortal(
+                    <div className="fixed inset-0 z-[9999] bg-white animate-fade-in flex flex-col items-center justify-center">
+                        <div className="absolute top-6 right-6">
+                             <button 
+                                onClick={() => setTermsSectionToDelete(null)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        
+                        <div className="max-w-md w-full p-8 text-center">
+                            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+                                <Trash2 size={32} />
+                            </div>
+                            <h3 className="text-2xl font-serif font-bold text-[#1d1d1f] mb-2">
+                                Excluir Seção {termsSectionToDelete}?
+                            </h3>
+                            <p className="text-gray-500 mb-8">
+                                Esta ação não pode ser desfeita. Todo o conteúdo desta seção será perdido permanentemente.
+                            </p>
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={() => setTermsSectionToDelete(null)}
+                                    className="py-3 px-6 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors min-w-[120px]"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmRemoveSection}
+                                    className="py-3 px-6 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20 min-w-[120px]"
+                                >
+                                    Sim, Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
+            </div>
+        );
+    };
+
+    // Renderização Especial para Política de Privacidade
+    const renderPrivacyPolicy = (pageId: string, section: PageSection) => {
+        const highlight = section.fields.find(f => f.key === 'highlight');
+        
+        // Agrupa campos por seção (section_1_, section_2_, etc.)
+        const sectionsMap = new Map<number, PageField[]>();
+        
+        section.fields.forEach(field => {
+            const match = field.key.match(/^section_(\d+)_/);
+            if (match) {
+                const sectionNum = parseInt(match[1]);
+                const currentFields = sectionsMap.get(sectionNum) || [];
+                currentFields.push(field);
+                sectionsMap.set(sectionNum, currentFields);
+            }
+        });
+
+        // Converte para array e ordena
+        const sortedSections = Array.from(sectionsMap.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([num, fields]) => ({ num, fields }));
+
+        const handleAddSection = () => {
+            const nextNum = sortedSections.length > 0 
+                ? Math.max(...sortedSections.map(s => s.num)) + 1 
+                : 1;
+            
+            const newFields: PageField[] = [
+                { key: `section_${nextNum}_title`, label: `Seção ${nextNum}: Título`, type: 'text', value: `Nova Seção ${nextNum}` },
+                { key: `section_${nextNum}_text`, label: `Seção ${nextNum}: Texto`, type: 'textarea', value: '' }
+            ];
+
+            const newContent = cmsContent.map(page => {
+                if (page.id === pageId) {
+                    return {
+                        ...page,
+                        sections: page.sections.map(sec => {
+                            if (sec.id === section.id) {
+                                return { ...sec, fields: [...sec.fields, ...newFields] };
+                            }
+                            return sec;
+                        })
+                    };
+                }
+                return page;
+            });
+            
+            setCmsContent(newContent);
+            setIsDirty(true);
+        };
+
+        const confirmRemoveSection = () => {
+             if (privacySectionToDelete === null) return;
+
+             const newContent = cmsContent.map(page => {
+                if (page.id === pageId) {
+                    return {
+                        ...page,
+                        sections: page.sections.map(sec => {
+                            if (sec.id === section.id) {
+                                return { 
+                                    ...sec, 
+                                    fields: sec.fields.filter(f => !f.key.startsWith(`section_${privacySectionToDelete}_`)) 
+                                };
+                            }
+                            return sec;
+                        })
+                    };
+                }
+                return page;
+            });
+            
+            setCmsContent(newContent);
+            setIsDirty(true);
+            setPrivacySectionToDelete(null);
+        }
+
+        return (
+            <div className="space-y-8">
+                {/* Destaque Inicial */}
+                {highlight && (
+                    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#1d1d1f] text-[#B8860B] flex items-center justify-center font-bold text-xs shadow-sm">
+                                <Shield size={16} />
+                            </div>
+                            <h4 className="font-serif font-bold text-base text-[#1d1d1f]">Destaque Inicial</h4>
+                        </div>
+                        <div className="p-6">
+                            {renderField(pageId, section.id, highlight)}
+                        </div>
+                    </div>
+                )}
+
+                {/* Seções Dinâmicas */}
+                {sortedSections.map(({ num, fields }) => (
+                    <div key={num} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden group relative">
+                        <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-[#1d1d1f] text-[#B8860B] flex items-center justify-center font-bold text-xs shadow-sm">
+                                    {num.toString().padStart(2, '0')}
+                                </div>
+                                <h4 className="font-serif font-bold text-base text-[#1d1d1f]">Seção {num}</h4>
+                            </div>
+                            <button 
+                                onClick={() => setPrivacySectionToDelete(num)}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                title="Remover Seção"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            {fields.map(field => renderField(pageId, section.id, field))}
+                        </div>
+                    </div>
+                ))}
+
+                {/* Botão Adicionar Seção */}
+                <button 
+                    onClick={handleAddSection}
+                    className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-2 text-gray-400 hover:border-[#B8860B] hover:text-[#B8860B] hover:bg-[#B8860B]/5 transition-all group"
+                >
+                    <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-[#B8860B] text-gray-400 group-hover:text-white flex items-center justify-center transition-colors">
+                        <Plus size={16} />
+                    </div>
+                    <span className="text-sm font-bold uppercase tracking-widest">Adicionar Nova Seção</span>
+                </button>
+
+                {/* Modal de Confirmação de Exclusão */}
+                {privacySectionToDelete !== null && createPortal(
+                    <div className="fixed inset-0 z-[9999] bg-white animate-fade-in flex flex-col items-center justify-center">
+                        <div className="absolute top-6 right-6">
+                             <button 
+                                onClick={() => setPrivacySectionToDelete(null)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        
+                        <div className="max-w-md w-full p-8 text-center">
+                            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+                                <Trash2 size={32} />
+                            </div>
+                            <h3 className="text-2xl font-serif font-bold text-[#1d1d1f] mb-2">
+                                Excluir Seção {privacySectionToDelete}?
+                            </h3>
+                            <p className="text-gray-500 mb-8">
+                                Esta ação não pode ser desfeita. Todo o conteúdo desta seção será perdido permanentemente.
+                            </p>
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={() => setPrivacySectionToDelete(null)}
+                                    className="py-3 px-6 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors min-w-[120px]"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmRemoveSection}
+                                    className="py-3 px-6 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20 min-w-[120px]"
+                                >
+                                    Sim, Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
+            </div>
+        );
+    };
+
+    // Renderização Especial para Política de Troca
+    const renderExchangePolicy = (pageId: string, section: PageSection) => {
+        const highlight = section.fields.find(f => f.key === 'highlight');
+        
+        // Agrupa campos por seção (section_1_, section_2_, etc.)
+        const sectionsMap = new Map<number, PageField[]>();
+        
+        section.fields.forEach(field => {
+            const match = field.key.match(/^section_(\d+)_/);
+            if (match) {
+                const sectionNum = parseInt(match[1]);
+                const currentFields = sectionsMap.get(sectionNum) || [];
+                currentFields.push(field);
+                sectionsMap.set(sectionNum, currentFields);
+            }
+        });
+
+        // Converte para array e ordena
+        const sortedSections = Array.from(sectionsMap.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([num, fields]) => ({ num, fields }));
+
+        // Campos Info (info_1_, info_2_)
+        const infoFields = section.fields.filter(f => f.key.startsWith('info_'));
+
+        const handleAddSection = () => {
+            const nextNum = sortedSections.length > 0 
+                ? Math.max(...sortedSections.map(s => s.num)) + 1 
+                : 1;
+            
+            const newFields: PageField[] = [
+                { key: `section_${nextNum}_title`, label: `Seção ${nextNum}: Título`, type: 'text', value: `Nova Seção ${nextNum}` },
+                { key: `section_${nextNum}_text`, label: `Seção ${nextNum}: Texto`, type: 'textarea', value: '' }
+            ];
+
+            const newContent = cmsContent.map(page => {
+                if (page.id === pageId) {
+                    return {
+                        ...page,
+                        sections: page.sections.map(sec => {
+                            if (sec.id === section.id) {
+                                return { ...sec, fields: [...sec.fields, ...newFields] };
+                            }
+                            return sec;
+                        })
+                    };
+                }
+                return page;
+            });
+            
+            setCmsContent(newContent);
+            setIsDirty(true);
+        };
+
+        const confirmRemoveSection = () => {
+             if (exchangeSectionToDelete === null) return;
+
+             const newContent = cmsContent.map(page => {
+                if (page.id === pageId) {
+                    return {
+                        ...page,
+                        sections: page.sections.map(sec => {
+                            if (sec.id === section.id) {
+                                return { 
+                                    ...sec, 
+                                    fields: sec.fields.filter(f => !f.key.startsWith(`section_${exchangeSectionToDelete}_`)) 
+                                };
+                            }
+                            return sec;
+                        })
+                    };
+                }
+                return page;
+            });
+            
+            setCmsContent(newContent);
+            setIsDirty(true);
+            setExchangeSectionToDelete(null);
+        }
+
+        return (
+            <div className="space-y-8">
+                {/* Destaque Inicial */}
+                {highlight && (
+                    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#1d1d1f] text-[#B8860B] flex items-center justify-center font-bold text-xs shadow-sm">
+                                <Shield size={16} />
+                            </div>
+                            <h4 className="font-serif font-bold text-base text-[#1d1d1f]">Destaque Inicial</h4>
+                        </div>
+                        <div className="p-6">
+                            {renderField(pageId, section.id, highlight)}
+                        </div>
+                    </div>
+                )}
+
+                {/* Seções Dinâmicas */}
+                {sortedSections.map(({ num, fields }) => (
+                    <div key={num} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden group relative">
+                        <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-[#1d1d1f] text-[#B8860B] flex items-center justify-center font-bold text-xs shadow-sm">
+                                    {num.toString().padStart(2, '0')}
+                                </div>
+                                <h4 className="font-serif font-bold text-base text-[#1d1d1f]">Seção {num}</h4>
+                            </div>
+                            <button 
+                                onClick={() => setExchangeSectionToDelete(num)}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                title="Remover Seção"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            {fields.map(field => renderField(pageId, section.id, field))}
+                            
+                            {/* Informações Adicionais (apenas na seção 2, se existir) */}
+                            {num === 2 && (
+                                <div className="mt-6 pt-6 border-t border-gray-100">
+                                    <div className="mb-4 flex items-center gap-2 text-[#B8860B]">
+                                        <Info size={16} />
+                                        <span className="text-xs font-bold uppercase tracking-widest">Informações Adicionais (Box)</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {[1, 2].map(boxNum => {
+                                            const titleKey = `info_${boxNum}_title`;
+                                            const descKey = `info_${boxNum}_desc`;
+                                            const iconKey = `info_${boxNum}_icon`;
+
+                                            const titleField = section.fields.find(f => f.key === titleKey);
+                                            const descField = section.fields.find(f => f.key === descKey);
+                                            const iconField = section.fields.find(f => f.key === iconKey);
+
+                                            if (!titleField || !descField || !iconField) return null;
+
+                                            const IconComp = AVAILABLE_ICONS.find(i => i.id === iconField.value)?.icon || Globe;
+                                            const isEditing = editingIconKey === iconKey;
+
+                                            return (
+                                                <div key={boxNum} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative group">
+                                                    <div className="flex flex-col gap-4">
+                                                        <div className="flex items-center gap-4">
+                                                            {/* Icon Picker Trigger */}
+                                                            <div className="relative">
+                                                                <div 
+                                                                    onClick={() => setEditingIconKey(isEditing ? null : iconKey)}
+                                                                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors cursor-pointer ${isEditing ? 'bg-[#1d1d1f] text-white' : 'bg-gray-100 text-[#1d1d1f] hover:bg-[#B8860B] hover:text-white'}`}
+                                                                    title="Clique para alterar o ícone"
+                                                                >
+                                                                    <IconComp size={24} strokeWidth={1.5} />
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* Title Input */}
+                                                            <div className="flex-1">
+                                                                <label className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-widest mb-1 block">
+                                                                    {titleField.label}
+                                                                </label>
+                                                                <input 
+                                                                    type="text"
+                                                                    value={titleField.value}
+                                                                    onChange={(e) => handleCmsUpdate(pageId, section.id, titleKey, e.target.value)}
+                                                                    className="w-full px-3 py-2 bg-[#F9F9FA] border border-gray-100 rounded-lg text-sm outline-none focus:border-[#B8860B]"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Description Input */}
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-widest mb-1 block">
+                                                                {descField.label}
+                                                            </label>
+                                                            <textarea 
+                                                                value={descField.value}
+                                                                onChange={(e) => handleCmsUpdate(pageId, section.id, descKey, e.target.value)}
+                                                                className="w-full p-3 bg-[#F9F9FA] border border-gray-100 rounded-lg text-sm outline-none focus:border-[#B8860B] min-h-[80px] resize-y"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Inline Picker */}
+                                                    {isEditing && (
+                                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                                            <InlineIconPicker 
+                                                                onSelect={(val) => {
+                                                                    handleCmsUpdate(pageId, section.id, iconKey, val);
+                                                                    setEditingIconKey(null);
+                                                                }}
+                                                                currentIcon={iconField.value}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
+
+                {/* Botão Adicionar Seção */}
+                <button 
+                    onClick={handleAddSection}
+                    className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-2 text-gray-400 hover:border-[#B8860B] hover:text-[#B8860B] hover:bg-[#B8860B]/5 transition-all group"
+                >
+                    <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-[#B8860B] text-gray-400 group-hover:text-white flex items-center justify-center transition-colors">
+                        <Plus size={16} />
+                    </div>
+                    <span className="text-sm font-bold uppercase tracking-widest">Adicionar Nova Seção</span>
+                </button>
+
+                {/* Modal de Confirmação de Exclusão */}
+                {exchangeSectionToDelete !== null && createPortal(
+                    <div className="fixed inset-0 z-[9999] bg-white animate-fade-in flex flex-col items-center justify-center">
+                        <div className="absolute top-6 right-6">
+                             <button 
+                                onClick={() => setExchangeSectionToDelete(null)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        
+                        <div className="max-w-md w-full p-8 text-center">
+                            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+                                <Trash2 size={32} />
+                            </div>
+                            <h3 className="text-2xl font-serif font-bold text-[#1d1d1f] mb-2">
+                                Excluir Seção {exchangeSectionToDelete}?
+                            </h3>
+                            <p className="text-gray-500 mb-8">
+                                Esta ação não pode ser desfeita. Todo o conteúdo desta seção será perdido permanentemente.
+                            </p>
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={() => setExchangeSectionToDelete(null)}
+                                    className="py-3 px-6 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors min-w-[120px]"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmRemoveSection}
+                                    className="py-3 px-6 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20 min-w-[120px]"
+                                >
+                                    Sim, Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
+            </div>
+        );
+    };
+
+    // Renderização Especial para Envios e Prazos
+    const renderShippingPolicy = (pageId: string, section: PageSection) => {
+        // Agrupa campos por seção (section_1_, section_2_, etc.)
+        const sectionsMap = new Map<number, PageField[]>();
+        
+        section.fields.forEach(field => {
+            const match = field.key.match(/^section_(\d+)_/);
+            if (match) {
+                const sectionNum = parseInt(match[1]);
+                const currentFields = sectionsMap.get(sectionNum) || [];
+                currentFields.push(field);
+                sectionsMap.set(sectionNum, currentFields);
+            }
+        });
+
+        // Converte para array e ordena
+        const sortedSections = Array.from(sectionsMap.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([num, fields]) => ({ num, fields }));
+
+        const handleAddSection = () => {
+            const nextNum = sortedSections.length > 0 
+                ? Math.max(...sortedSections.map(s => s.num)) + 1 
+                : 1;
+            
+            const newFields: PageField[] = [
+                { key: `section_${nextNum}_title`, label: `Seção ${nextNum}: Título`, type: 'text', value: `Nova Seção ${nextNum}` },
+                { key: `section_${nextNum}_text`, label: `Seção ${nextNum}: Texto`, type: 'textarea', value: '' }
+            ];
+
+            const newContent = cmsContent.map(page => {
+                if (page.id === pageId) {
+                    return {
+                        ...page,
+                        sections: page.sections.map(sec => {
+                            if (sec.id === section.id) {
+                                return { ...sec, fields: [...sec.fields, ...newFields] };
+                            }
+                            return sec;
+                        })
+                    };
+                }
+                return page;
+            });
+            
+            setCmsContent(newContent);
+            setIsDirty(true);
+        };
+
+        const confirmRemoveSection = () => {
+             if (shippingSectionToDelete === null) return;
+
+             const newContent = cmsContent.map(page => {
+                if (page.id === pageId) {
+                    return {
+                        ...page,
+                        sections: page.sections.map(sec => {
+                            if (sec.id === section.id) {
+                                return { 
+                                    ...sec, 
+                                    fields: sec.fields.filter(f => !f.key.startsWith(`section_${shippingSectionToDelete}_`)) 
+                                };
+                            }
+                            return sec;
+                        })
+                    };
+                }
+                return page;
+            });
+            
+            setCmsContent(newContent);
+            setIsDirty(true);
+            setShippingSectionToDelete(null);
+        }
+
+        return (
+            <div className="space-y-8">
+                {/* Seções Dinâmicas */}
+                {sortedSections.map(({ num, fields }) => (
+                    <div key={num} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden group relative">
+                        <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-[#1d1d1f] text-[#B8860B] flex items-center justify-center font-bold text-xs shadow-sm">
+                                    {num.toString().padStart(2, '0')}
+                                </div>
+                                <h4 className="font-serif font-bold text-base text-[#1d1d1f]">Seção {num}</h4>
+                            </div>
+                            <button 
+                                onClick={() => setShippingSectionToDelete(num)}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                title="Remover Seção"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            {fields.map(field => renderField(pageId, section.id, field))}
+                            
+                            {/* Modalidades de Entrega (apenas na seção 2, se existir) */}
+                            {num === 2 && (
+                                <div className="mt-6 pt-6 border-t border-gray-100">
+                                    <div className="mb-4 flex items-center gap-2 text-[#B8860B]">
+                                        <Truck size={16} />
+                                        <span className="text-xs font-bold uppercase tracking-widest">Modalidades de Entrega (Box)</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {[1, 2].map(boxNum => {
+                                            const titleKey = `info_${boxNum}_title`;
+                                            const descKey = `info_${boxNum}_desc`;
+                                            const iconKey = `info_${boxNum}_icon`;
+
+                                            const titleField = section.fields.find(f => f.key === titleKey);
+                                            const descField = section.fields.find(f => f.key === descKey);
+                                            const iconField = section.fields.find(f => f.key === iconKey);
+
+                                            if (!titleField || !descField) return null;
+
+                                            // Fallback icon if field doesn't exist yet (though we added it to mockService)
+                                            const currentIconVal = iconField ? iconField.value : (boxNum === 1 ? 'Truck' : 'Package');
+                                            const IconComp = AVAILABLE_ICONS.find(i => i.id === currentIconVal)?.icon || Globe;
+                                            const isEditing = editingIconKey === iconKey;
+
+                                            return (
+                                                <div key={boxNum} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative group">
+                                                    <div className="flex flex-col gap-4">
+                                                        <div className="flex items-center gap-4">
+                                                            {/* Icon Picker Trigger */}
+                                                            <div className="relative">
+                                                                <div 
+                                                                    onClick={() => setEditingIconKey(isEditing ? null : iconKey)}
+                                                                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors cursor-pointer ${isEditing ? 'bg-[#1d1d1f] text-white' : 'bg-gray-100 text-[#1d1d1f] hover:bg-[#B8860B] hover:text-white'}`}
+                                                                    title="Clique para alterar o ícone"
+                                                                >
+                                                                    <IconComp size={24} strokeWidth={1.5} />
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* Title Input */}
+                                                            <div className="flex-1">
+                                                                <label className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-widest mb-1 block">
+                                                                    {titleField.label}
+                                                                </label>
+                                                                <input 
+                                                                    type="text"
+                                                                    value={titleField.value}
+                                                                    onChange={(e) => handleCmsUpdate(pageId, section.id, titleKey, e.target.value)}
+                                                                    className="w-full px-3 py-2 bg-[#F9F9FA] border border-gray-100 rounded-lg text-sm outline-none focus:border-[#B8860B]"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Description Input */}
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-[#1d1d1f] uppercase tracking-widest mb-1 block">
+                                                                {descField.label}
+                                                            </label>
+                                                            <textarea 
+                                                                value={descField.value}
+                                                                onChange={(e) => handleCmsUpdate(pageId, section.id, descKey, e.target.value)}
+                                                                className="w-full p-3 bg-[#F9F9FA] border border-gray-100 rounded-lg text-sm outline-none focus:border-[#B8860B] min-h-[80px] resize-y"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Inline Picker */}
+                                                    {isEditing && (
+                                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                                            <InlineIconPicker 
+                                                                onSelect={(val) => {
+                                                                    // If field doesn't exist, we need to add it implicitly via handleCmsUpdate logic or ensure it exists
+                                                                    // Since handleCmsUpdate just updates existing fields, we might need to add it if missing.
+                                                                    // However, we added it to mockService, so it should exist for new loads.
+                                                                    // For existing data in localStorage, mergeCmsContent should have added it.
+                                                                    handleCmsUpdate(pageId, section.id, iconKey, val);
+                                                                    setEditingIconKey(null);
+                                                                }}
+                                                                currentIcon={currentIconVal}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
+
+                {/* Botão Adicionar Seção */}
+                <button 
+                    onClick={handleAddSection}
+                    className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-2 text-gray-400 hover:border-[#B8860B] hover:text-[#B8860B] hover:bg-[#B8860B]/5 transition-all group"
+                >
+                    <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-[#B8860B] text-gray-400 group-hover:text-white flex items-center justify-center transition-colors">
+                        <Plus size={16} />
+                    </div>
+                    <span className="text-sm font-bold uppercase tracking-widest">Adicionar Nova Seção</span>
+                </button>
+
+                {/* Modal de Confirmação de Exclusão */}
+                {shippingSectionToDelete !== null && createPortal(
+                    <div className="fixed inset-0 z-[9999] bg-white animate-fade-in flex flex-col items-center justify-center">
+                        <div className="absolute top-6 right-6">
+                             <button 
+                                onClick={() => setShippingSectionToDelete(null)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        
+                        <div className="max-w-md w-full p-8 text-center">
+                            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+                                <Trash2 size={32} />
+                            </div>
+                            <h3 className="text-2xl font-serif font-bold text-[#1d1d1f] mb-2">
+                                Excluir Seção {shippingSectionToDelete}?
+                            </h3>
+                            <p className="text-gray-500 mb-8">
+                                Esta ação não pode ser desfeita. Todo o conteúdo desta seção será perdido permanentemente.
+                            </p>
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={() => setShippingSectionToDelete(null)}
+                                    className="py-3 px-6 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors min-w-[120px]"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmRemoveSection}
+                                    className="py-3 px-6 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20 min-w-[120px]"
+                                >
+                                    Sim, Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
+            </div>
+        );
+    };
+
     // Renderização Especial para Processo de Produção (Etapas)
     const renderProductionSteps = (pageId: string, section: PageSection) => {
         // Agrupa campos por etapa (1, 2, 3)
@@ -617,40 +1478,94 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
         const step2 = section.fields.filter(f => f.key.startsWith('step_2_'));
         const step3 = section.fields.filter(f => f.key.startsWith('step_3_'));
 
+        const handleIconUpdate = (stepNum: number, newIcon: string) => {
+            const iconKey = `step_${stepNum}_icon`;
+            const existingField = section.fields.find(f => f.key === iconKey);
+            
+            if (existingField) {
+                handleCmsUpdate(pageId, section.id, iconKey, newIcon);
+            } else {
+                const newField: PageField = { key: iconKey, label: `Ícone Etapa ${stepNum}`, type: 'text', value: newIcon };
+                const newContent = cmsContent.map(page => {
+                    if (page.id === pageId) {
+                        return {
+                            ...page,
+                            sections: page.sections.map(sec => {
+                                if (sec.id === section.id) {
+                                    return { ...sec, fields: [...sec.fields, newField] };
+                                }
+                                return sec;
+                            })
+                        };
+                    }
+                    return page;
+                });
+                setCmsContent(newContent);
+                setIsDirty(true);
+            }
+            setEditingIconKey(null);
+        };
+
         return (
-            <div className="space-y-10 animate-fade-in">
+            <div className="space-y-10">
                 <div className="grid grid-cols-1 gap-8">
                     {[
                         { num: 1, fields: step1, label: 'Primeira Etapa' },
                         { num: 2, fields: step2, label: 'Segunda Etapa' },
                         { num: 3, fields: step3, label: 'Terceira Etapa' }
-                    ].map(step => (
-                        <div key={step.num} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden relative">
-                            {/* Header do Card da Etapa */}
-                            <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-[#1d1d1f] text-[#B8860B] flex items-center justify-center font-bold text-xs shadow-sm">
-                                        0{step.num}
-                                    </div>
-                                    <h4 className="font-serif font-bold text-base text-[#1d1d1f]">{step.label}</h4>
-                                </div>
-                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Edição de Bloco</span>
-                            </div>
-                            
-                            {/* Campos da Etapa */}
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {step.fields.map(field => {
-                                    // Se for a descrição, ocupa as duas colunas no desktop
-                                    const isDesc = field.key.includes('_desc');
-                                    return (
-                                        <div key={field.key} className={`${isDesc ? 'md:col-span-2' : ''}`}>
-                                            {renderField(pageId, section.id, field)}
+                    ].map(step => {
+                        const iconKey = `step_${step.num}_icon`;
+                        const iconField = section.fields.find(f => f.key === iconKey);
+                        const currentIconId = iconField ? iconField.value : 'Globe';
+                        const IconComp = AVAILABLE_ICONS.find(i => i.id === currentIconId)?.icon || Globe;
+                        const isEditing = editingIconKey === iconKey;
+
+                        return (
+                            <div key={step.num} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden relative">
+                                {/* Header do Card da Etapa */}
+                                <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative">
+                                            <div 
+                                                onClick={() => setEditingIconKey(isEditing ? null : iconKey)}
+                                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${isEditing ? 'bg-[#1d1d1f] text-white' : 'bg-gray-100 text-[#1d1d1f] hover:bg-[#B8860B] hover:text-white'}`}
+                                                title="Clique para alterar o ícone"
+                                            >
+                                                <IconComp size={16} />
+                                            </div>
                                         </div>
-                                    );
-                                })}
+                                        <h4 className="font-serif font-bold text-base text-[#1d1d1f]">{step.label}</h4>
+                                    </div>
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Edição de Bloco</span>
+                                </div>
+                                
+                                {isEditing && (
+                                    <div className="bg-gray-50/80 border-t border-gray-100 p-4">
+                                        <InlineIconPicker 
+                                            onSelect={(val) => handleIconUpdate(step.num, val)}
+                                            currentIcon={currentIconId}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Campos da Etapa */}
+                                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {step.fields.map(field => {
+                                        // Se for a descrição, ocupa as duas colunas no desktop
+                                        const isDesc = field.key.includes('_desc');
+                                        // Skip icon field if it appears here
+                                        if (field.key === iconKey) return null;
+
+                                        return (
+                                            <div key={field.key} className={`${isDesc ? 'md:col-span-2' : ''}`}>
+                                                {renderField(pageId, section.id, field)}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         );
@@ -658,27 +1573,209 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
 
     // Renderização Especial para Pontos Sustentáveis
     const renderSustainabilityPoints = (pageId: string, section: PageSection) => {
-        // Agrupa campos por ponto (p1, p2, p3, p4)
-        const points = [1, 2, 3, 4].map(num => ({
-            id: num,
-            fields: section.fields.filter(f => f.key.startsWith(`p${num}_`))
-        }));
+        // Agrupa campos por ponto (p1, p2, p3, p4...)
+        const pointsMap = new Map<number, PageField[]>();
+        
+        section.fields.forEach(field => {
+            const match = field.key.match(/^p(\d+)_/);
+            if (match) {
+                const pointNum = parseInt(match[1]);
+                const currentFields = pointsMap.get(pointNum) || [];
+                currentFields.push(field);
+                pointsMap.set(pointNum, currentFields);
+            }
+        });
+
+        const points = Array.from(pointsMap.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([id, fields]) => ({ id, fields }));
+
+        const handleIconUpdate = (pointId: number, newIcon: string) => {
+            const iconKey = `p${pointId}_icon`;
+            const existingField = section.fields.find(f => f.key === iconKey);
+            
+            if (existingField) {
+                handleCmsUpdate(pageId, section.id, iconKey, newIcon);
+            } else {
+                const newField: PageField = { key: iconKey, label: `Ícone Ponto ${pointId}`, type: 'text', value: newIcon };
+                const newContent = cmsContent.map(page => {
+                    if (page.id === pageId) {
+                        return {
+                            ...page,
+                            sections: page.sections.map(sec => {
+                                if (sec.id === section.id) {
+                                    return { ...sec, fields: [...sec.fields, newField] };
+                                }
+                                return sec;
+                            })
+                        };
+                    }
+                    return page;
+                });
+                setCmsContent(newContent);
+                setIsDirty(true);
+            }
+            setEditingIconKey(null);
+        };
+
+        const handleAddPoint = () => {
+            const nextId = points.length > 0 
+                ? Math.max(...points.map(p => p.id)) + 1 
+                : 1;
+
+            const newFields: PageField[] = [
+                { key: `p${nextId}_title`, label: `Título Ponto ${nextId}`, type: 'text', value: `Novo Ponto ${nextId}` },
+                { key: `p${nextId}_desc`, label: `Descrição Ponto ${nextId}`, type: 'textarea', value: '' },
+                { key: `p${nextId}_icon`, label: `Ícone Ponto ${nextId}`, type: 'text', value: 'Globe' }
+            ];
+
+            const newContent = cmsContent.map(page => {
+                if (page.id === pageId) {
+                    return {
+                        ...page,
+                        sections: page.sections.map(sec => {
+                            if (sec.id === section.id) {
+                                return { ...sec, fields: [...sec.fields, ...newFields] };
+                            }
+                            return sec;
+                        })
+                    };
+                }
+                return page;
+            });
+            setCmsContent(newContent);
+            setIsDirty(true);
+        };
+
+        const confirmRemovePoint = () => {
+            if (sustainabilityPointToDelete === null) return;
+
+            const newContent = cmsContent.map(page => {
+                if (page.id === pageId) {
+                    return {
+                        ...page,
+                        sections: page.sections.map(sec => {
+                            if (sec.id === section.id) {
+                                return { 
+                                    ...sec, 
+                                    fields: sec.fields.filter(f => !f.key.startsWith(`p${sustainabilityPointToDelete}_`)) 
+                                };
+                            }
+                            return sec;
+                        })
+                    };
+                }
+                return page;
+            });
+            
+            setCmsContent(newContent);
+            setIsDirty(true);
+            setSustainabilityPointToDelete(null);
+        };
 
         return (
-            <div className="space-y-8 animate-fade-in">
-                {points.map(point => (
-                    <div key={point.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                        <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#1d1d1f] text-[#B8860B] flex items-center justify-center font-bold text-xs shadow-sm">
-                                0{point.id}
+            <div className="space-y-8">
+                {points.map(point => {
+                    const iconKey = `p${point.id}_icon`;
+                    const iconField = section.fields.find(f => f.key === iconKey);
+                    const currentIconId = iconField ? iconField.value : 'Globe';
+                    const IconComp = AVAILABLE_ICONS.find(i => i.id === currentIconId)?.icon || Globe;
+                    const isEditing = editingIconKey === iconKey;
+
+                    return (
+                        <div key={point.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden relative group">
+                            <div className="px-6 py-4 bg-[#F9F9FA] border-b border-gray-100 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="relative">
+                                        <div 
+                                            onClick={() => setEditingIconKey(isEditing ? null : iconKey)}
+                                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${isEditing ? 'bg-[#1d1d1f] text-white' : 'bg-gray-100 text-[#1d1d1f] hover:bg-[#B8860B] hover:text-white'}`}
+                                            title="Clique para alterar o ícone"
+                                        >
+                                            <IconComp size={16} />
+                                        </div>
+                                    </div>
+                                    <h4 className="font-serif font-bold text-base text-[#1d1d1f]">Ponto Sustentável {point.id}</h4>
+                                </div>
+                                <button 
+                                    onClick={() => setSustainabilityPointToDelete(point.id)}
+                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Remover Ponto"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
                             </div>
-                            <h4 className="font-serif font-bold text-base text-[#1d1d1f]">Ponto Sustentável {point.id}</h4>
+
+                            {isEditing && (
+                                <div className="bg-gray-50/80 border-t border-gray-100 p-4">
+                                    <InlineIconPicker 
+                                        onSelect={(val) => handleIconUpdate(point.id, val)}
+                                        currentIcon={currentIconId}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="p-6 space-y-6">
+                                {point.fields.map(field => {
+                                    if (field.key === iconKey) return null;
+                                    return renderField(pageId, section.id, field);
+                                })}
+                            </div>
                         </div>
-                        <div className="p-6 space-y-6">
-                            {point.fields.map(field => renderField(pageId, section.id, field))}
-                        </div>
+                    );
+                })}
+
+                {/* Botão Adicionar Ponto */}
+                <button 
+                    onClick={handleAddPoint}
+                    className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-2 text-gray-400 hover:border-[#B8860B] hover:text-[#B8860B] hover:bg-[#B8860B]/5 transition-all group"
+                >
+                    <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-[#B8860B] text-gray-400 group-hover:text-white flex items-center justify-center transition-colors">
+                        <Plus size={16} />
                     </div>
-                ))}
+                    <span className="text-sm font-bold uppercase tracking-widest">Adicionar Novo Ponto</span>
+                </button>
+
+                {/* Modal de Confirmação de Exclusão */}
+                {sustainabilityPointToDelete !== null && createPortal(
+                    <div className="fixed inset-0 z-[9999] bg-white animate-fade-in flex flex-col items-center justify-center">
+                        <div className="absolute top-6 right-6">
+                             <button 
+                                onClick={() => setSustainabilityPointToDelete(null)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        
+                        <div className="max-w-md w-full p-8 text-center">
+                            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+                                <Trash2 size={32} />
+                            </div>
+                            <h3 className="text-2xl font-serif font-bold text-[#1d1d1f] mb-2">
+                                Excluir Ponto {sustainabilityPointToDelete}?
+                            </h3>
+                            <p className="text-gray-500 mb-8">
+                                Esta ação não pode ser desfeita. Todo o conteúdo deste ponto será perdido permanentemente.
+                            </p>
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={() => setSustainabilityPointToDelete(null)}
+                                    className="py-3 px-6 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors min-w-[120px]"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmRemovePoint}
+                                    className="py-3 px-6 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20 min-w-[120px]"
+                                >
+                                    Sim, Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
             </div>
         );
     };
@@ -1114,6 +2211,70 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                                             </div>
                                         </div>
                                         {renderContactSection(selectedPageId, section)}
+                                    </div>
+                                );
+                            }
+
+                            // Se for a seção de Termos de Uso, usa renderizador especial
+                            if (selectedPageId === 'terms' && section.id === 'content') {
+                                return (
+                                    <div key={section.id} className="space-y-6">
+                                        <div className="flex items-center gap-3 ml-2">
+                                            <div className="p-2 bg-[#B8860B]/10 rounded-lg text-[#B8860B] shadow-sm"><FileText size={20}/></div>
+                                            <div>
+                                                <h3 className="font-serif font-bold text-xl text-[#1d1d1f]">{section.title}</h3>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Organização Legal</p>
+                                            </div>
+                                        </div>
+                                        {renderTermsOfUse(selectedPageId, section)}
+                                    </div>
+                                );
+                            }
+
+                            // Se for a seção de Política de Privacidade, usa renderizador especial
+                            if (selectedPageId === 'privacy' && section.id === 'content') {
+                                return (
+                                    <div key={section.id} className="space-y-6">
+                                        <div className="flex items-center gap-3 ml-2">
+                                            <div className="p-2 bg-[#B8860B]/10 rounded-lg text-[#B8860B] shadow-sm"><Shield size={20}/></div>
+                                            <div>
+                                                <h3 className="font-serif font-bold text-xl text-[#1d1d1f]">{section.title}</h3>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Organização Legal</p>
+                                            </div>
+                                        </div>
+                                        {renderPrivacyPolicy(selectedPageId, section)}
+                                    </div>
+                                );
+                            }
+
+                            // Se for a seção de Política de Troca, usa renderizador especial
+                            if (selectedPageId === 'exchanges' && section.id === 'content') {
+                                return (
+                                    <div key={section.id} className="space-y-6">
+                                        <div className="flex items-center gap-3 ml-2">
+                                            <div className="p-2 bg-[#B8860B]/10 rounded-lg text-[#B8860B] shadow-sm"><RefreshCw size={20}/></div>
+                                            <div>
+                                                <h3 className="font-serif font-bold text-xl text-[#1d1d1f]">{section.title}</h3>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Organização Legal</p>
+                                            </div>
+                                        </div>
+                                        {renderExchangePolicy(selectedPageId, section)}
+                                    </div>
+                                );
+                            }
+
+                            // Se for a seção de Envios e Prazos, usa renderizador especial
+                            if (selectedPageId === 'shipping' && section.id === 'content') {
+                                return (
+                                    <div key={section.id} className="space-y-6">
+                                        <div className="flex items-center gap-3 ml-2">
+                                            <div className="p-2 bg-[#B8860B]/10 rounded-lg text-[#B8860B] shadow-sm"><Truck size={20}/></div>
+                                            <div>
+                                                <h3 className="font-serif font-bold text-xl text-[#1d1d1f]">{section.title}</h3>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Organização Legal</p>
+                                            </div>
+                                        </div>
+                                        {renderShippingPolicy(selectedPageId, section)}
                                     </div>
                                 );
                             }
