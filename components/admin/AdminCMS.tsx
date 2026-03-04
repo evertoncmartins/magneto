@@ -195,13 +195,14 @@ interface SocialSortableItemProps {
     editingIconKey: string | null;
     setEditingIconKey: (key: string | null) => void;
     handleIconUpdate: (key: string, icon: string) => void;
+    handleLabelUpdate: (key: string, label: string) => void;
     getVal: (key: string) => string;
 }
 
 const SocialSortableItem = ({
     itemKey, config, isCustom, section, pageId,
     handleCmsUpdate, handleDeleteSocial, editingIconKey,
-    setEditingIconKey, handleIconUpdate, getVal
+    setEditingIconKey, handleIconUpdate, handleLabelUpdate, getVal
 }: SocialSortableItemProps) => {
     const controls = useDragControls();
     const isEditing = editingIconKey === itemKey;
@@ -209,6 +210,9 @@ const SocialSortableItem = ({
     const iconOverrideField = section.fields.find(f => f.key === `${itemKey}_icon`);
     const IconComp = iconOverrideField ? (AVAILABLE_ICONS.find(i => i.id === iconOverrideField.value)?.icon || Globe) : config.icon;
     const currentIconId = iconOverrideField ? iconOverrideField.value : (AVAILABLE_ICONS.find(i => i.icon === config.icon)?.id || 'Globe');
+
+    const labelField = section.fields.find(f => f.key === `${itemKey}_label`);
+    const currentLabel = labelField ? labelField.value : config.label;
 
     return (
         <Reorder.Item
@@ -219,7 +223,7 @@ const SocialSortableItem = ({
             className={`bg-white border border-gray-200 rounded-xl transition-all group relative overflow-hidden mb-3 ${isEditing ? 'ring-1 ring-[#B8860B] shadow-md' : 'hover:shadow-md'}`}
         >
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4">
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-3 w-full sm:w-auto flex-1 sm:flex-none">
                     <div 
                         onPointerDown={(e) => !isEditing && controls.start(e)}
                         className={`text-gray-300 transition-colors shrink-0 touch-none ${isEditing ? 'opacity-30 cursor-not-allowed' : 'group-hover:text-[#1d1d1f] cursor-grab'}`}
@@ -227,7 +231,7 @@ const SocialSortableItem = ({
                         <GripVertical size={20} />
                     </div>
                     
-                    <div className="relative">
+                    <div className="relative shrink-0">
                         <div 
                             onClick={() => setEditingIconKey(isEditing ? null : itemKey)}
                             className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${isEditing ? 'bg-[#1d1d1f] text-white' : 'bg-gray-100 text-[#1d1d1f] hover:bg-[#B8860B] hover:text-white'}`}
@@ -237,7 +241,15 @@ const SocialSortableItem = ({
                         </div>
                     </div>
 
-                    <div className="flex-1 sm:flex-none"><p className="text-xs font-bold text-[#1d1d1f] uppercase tracking-wide">{config.label}</p></div>
+                    <div className="flex-1 min-w-[120px]">
+                        <input 
+                            type="text" 
+                            value={currentLabel} 
+                            onChange={(e) => handleLabelUpdate(itemKey, e.target.value)}
+                            className="text-xs font-bold text-[#1d1d1f] uppercase tracking-wide bg-transparent border-b border-transparent hover:border-gray-200 focus:border-[#B8860B] outline-none w-full py-1"
+                            placeholder="Nome da Rede"
+                        />
+                    </div>
                 </div>
                 <div className="flex items-center justify-between gap-4 w-full sm:w-auto sm:ml-auto">
                     <div className="flex items-center gap-2 bg-[#F9F9FA] px-3 py-1.5 rounded-lg border border-gray-100 flex-1 sm:flex-none w-full sm:w-64">
@@ -476,7 +488,8 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
         const newFields: PageField[] = [
             { key: `${key}_url`, label: `${newSocialName} URL`, type: 'text', value: '' },
             { key: `${key}_visible`, label: `${newSocialName} Visível`, type: 'boolean', value: 'true' },
-            { key: `${key}_icon`, label: `${newSocialName} Ícone`, type: 'text', value: newSocialIcon }
+            { key: `${key}_icon`, label: `${newSocialName} Ícone`, type: 'text', value: newSocialIcon },
+            { key: `${key}_label`, label: `${newSocialName} Nome`, type: 'text', value: newSocialName }
         ];
 
         const newContent = cmsContent.map(page => {
@@ -1829,6 +1842,33 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
             setEditingIconKey(null);
         };
 
+        const handleLabelUpdate = (itemKey: string, newLabel: string) => {
+            let labelFieldKey = `${itemKey}_label`;
+            const existingField = section.fields.find(f => f.key === labelFieldKey);
+            
+            if (existingField) {
+                handleCmsUpdate(pageId, section.id, labelFieldKey, newLabel);
+            } else {
+                const newField: PageField = { key: labelFieldKey, label: `${itemKey} Nome`, type: 'text', value: newLabel };
+                const newContent = cmsContent.map(page => {
+                    if (page.id === pageId) {
+                        return {
+                            ...page,
+                            sections: page.sections.map(sec => {
+                                if (sec.id === section.id) {
+                                    return { ...sec, fields: [...sec.fields, newField] };
+                                }
+                                return sec;
+                            })
+                        };
+                    }
+                    return page;
+                });
+                setCmsContent(newContent);
+                setIsDirty(true);
+            }
+        };
+
         return (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fade-in">
                  <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
@@ -1884,6 +1924,7 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                                     editingIconKey={editingIconKey}
                                     setEditingIconKey={setEditingIconKey}
                                     handleIconUpdate={handleIconUpdate}
+                                    handleLabelUpdate={handleLabelUpdate}
                                     getVal={getVal}
                                 />
                             );

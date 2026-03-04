@@ -483,21 +483,34 @@ const Footer = () => {
     };
 
     const getSocialItem = (key: string) => {
-        // Check hardcoded first
-        if (key === 'instagram') return { url: instagramUrl, visible: instagramVisible, icon: Instagram };
-        if (key === 'facebook') return { url: facebookUrl, visible: facebookVisible, icon: Facebook };
-        if (key === 'twitter') return { url: twitterUrl, visible: twitterVisible, icon: Twitter };
-
-        // Dynamic lookup
         const url = getField('social', `${key}_url`);
         const visible = getField('social', `${key}_visible`) === 'true';
         const iconName = getField('social', `${key}_icon`);
+        const label = getField('social', `${key}_label`) || key.charAt(0).toUpperCase() + key.slice(1);
+
+        // Standard items defaults (if not overridden by fields, though fields are the source of truth now)
+        // Actually, getField returns the value if it exists.
+        // For standard items, we just need to ensure we use the dynamic icon if present.
         
-        if (url) {
+        let Icon = Globe;
+        if (iconName && iconMap[iconName]) {
+            Icon = iconMap[iconName];
+        } else {
+            // Fallback defaults
+            if (key === 'instagram') Icon = Instagram;
+            else if (key === 'facebook') Icon = Facebook;
+            else if (key === 'twitter') Icon = Twitter;
+        }
+
+        // For standard items, if URL is empty, it might be because we didn't migrate yet? 
+        // No, getField gets what's in CMS.
+        
+        if (url || ['instagram', 'facebook', 'twitter'].includes(key)) {
              return { 
                  url, 
                  visible, 
-                 icon: iconMap[iconName] || Globe 
+                 icon: Icon,
+                 label
              };
         }
         return null;
@@ -520,7 +533,7 @@ const Footer = () => {
                                 if (!item || !item.visible) return null;
                                 const Icon = item.icon;
                                 return (
-                                    <a key={key} href={item.url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 border border-gray-100 rounded-md flex items-center justify-center hover:bg-[#1d1d1f] hover:text-white transition-all">
+                                    <a key={key} href={item.url} title={item.label} target="_blank" rel="noopener noreferrer" className="w-9 h-9 border border-gray-100 rounded-md flex items-center justify-center hover:bg-[#1d1d1f] hover:text-white transition-all">
                                         <Icon size={16}/>
                                     </a>
                                 );
