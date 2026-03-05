@@ -8,7 +8,7 @@ import {
   ArrowRight, Truck, User as UserIcon, LogOut, FileText, ChevronDown, Monitor, ChevronRight, Loader2,
   ChevronLeft, Filter, ArrowLeft, Instagram, Facebook, Twitter, Mail, Package, Info, UserRoundPen,
   Shield, Sparkles, Wand2, Heart, Award, ToggleRight, ToggleLeft, Leaf, Globe, Recycle, Layers, Calendar, Phone,
-  Linkedin, Youtube, Github, Twitch, MessageCircle, Music, Video, Smartphone
+  Linkedin, Youtube, Github, Twitch, MessageCircle, Music, Video, Smartphone, Clock, Search, Users, Sun, Moon, Droplet, Smile, ThumbsUp, Send, Tag
 } from 'lucide-react';
 import { Review, User, MagnetItem } from './types';
 import { getReviews, updateUser, getPublicStats, getSiteContent } from './services/mockService';
@@ -61,6 +61,36 @@ const AdminModeBar = ({ clientName, onExit }: { clientName: string, onExit: () =
 // --- Landing Page Sections ---
 
 const HeroSection = () => {
+  const [content, setContent] = useState({
+    badge_text: 'Eternizando Momentos',
+    headline_main: 'Suas fotos em',
+    headline_highlight: 'memórias táteis.',
+    subheadline: 'A sofisticação dos ímãs premium com acabamento manual. Qualidade fotográfica que resiste ao tempo, direto na sua porta.',
+    button_primary_text: 'Criar meus ímãs',
+    button_secondary_text: 'Conheça o processo',
+    hero_image: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1200'
+  });
+
+  useEffect(() => {
+    const siteContent = getSiteContent();
+    const homePage = siteContent.find(p => p.id === 'home');
+    const heroSection = homePage?.sections.find(s => s.id === 'hero');
+
+    if (heroSection) {
+      const getField = (key: string) => heroSection.fields.find(f => f.key === key)?.value;
+      
+      setContent(prev => ({
+        badge_text: getField('badge_text') || prev.badge_text,
+        headline_main: getField('headline_main') || prev.headline_main,
+        headline_highlight: getField('headline_highlight') || prev.headline_highlight,
+        subheadline: getField('subheadline') || prev.subheadline,
+        button_primary_text: getField('button_primary_text') || prev.button_primary_text,
+        button_secondary_text: getField('button_secondary_text') || prev.button_secondary_text,
+        hero_image: getField('hero_image') || prev.hero_image
+      }));
+    }
+  }, []);
+
   const scrollToProcess = (e: React.MouseEvent) => {
     e.preventDefault();
     const section = document.getElementById('process');
@@ -73,14 +103,14 @@ const HeroSection = () => {
     <section className="relative bg-white pt-32 pb-20 md:pt-52 md:pb-40 overflow-hidden border-b border-gray-100">
       <div className="max-w-[1200px] mx-auto px-6 flex flex-col items-center text-center relative z-10">
          <div className="inline-flex items-center gap-2 border border-[#B8860B]/30 px-4 py-2 rounded-md text-[10px] font-bold text-[#B8860B] mb-8 uppercase tracking-[0.3em] bg-[#F5F5F7]">
-            Eternizando Momentos
+            {content.badge_text}
          </div>
          <h1 className="text-5xl md:text-8xl font-serif font-light text-[#1d1d1f] tracking-tight Carol leading-[1.1] mb-8">
-            Suas fotos em <br/>
-            <span className="italic text-[#B8860B]">memórias táteis.</span>
+            {content.headline_main} <br/>
+            <span className="italic text-[#B8860B]">{content.headline_highlight}</span>
          </h1>
          <p className="text-lg md:text-xl text-[#86868b] font-light leading-relaxed mb-12 max-w-2xl">
-            A sofisticação dos ímãs premium com acabamento manual. Qualidade fotográfica que resiste ao tempo, direto na sua porta.
+            {content.subheadline}
          </p>
          
          <div className="flex flex-col sm:flex-row gap-4">
@@ -88,21 +118,21 @@ const HeroSection = () => {
                 to="/studio" 
                 className="px-10 py-4 bg-[#1d1d1f] text-white rounded-md font-bold text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-3"
               >
-                Criar meus ímãs <ArrowRight size={16} />
+                {content.button_primary_text} <ArrowRight size={16} />
               </Link>
               <a 
                 href="#process" 
                 onClick={scrollToProcess}
                 className="px-10 py-4 bg-white text-[#1d1d1f] border border-gray-200 rounded-md font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition-all"
               >
-                Conheça o processo
+                {content.button_secondary_text}
               </a>
          </div>
          
          <div className="mt-24 w-full max-w-4xl relative">
              <div className="hidden md:block absolute -inset-4 bg-gray-100/50 blur-3xl rounded-full"></div>
              <img 
-                src="https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1200&auto=format&fit=crop" 
+                src={content.hero_image} 
                 alt="Display de Ímãs Premium" 
                 className="relative w-full rounded-md shadow-2xl object-cover aspect-[16/8] border border-gray-100"
              />
@@ -113,11 +143,56 @@ const HeroSection = () => {
 };
 
 const BenefitsSection = () => {
-    const benefits = [
-        { icon: Award, title: 'Papel Fine Art', desc: 'Impressão em papel de alta gramatura com fidelidade de cores impecável.' },
-        { icon: ShieldCheck, title: 'Laminado UV', desc: 'Uma camada extra de proteção que garante durabilidade de décadas.' },
-        { icon: Truck, title: 'Entrega Segura', desc: 'Produção artesanal em até 48h com embalagem premium anti-impacto.' },
-    ];
+    const [benefits, setBenefits] = useState<{icon: any, title: string, desc: string}[]>([]);
+
+    useEffect(() => {
+        const content = getSiteContent();
+        const homePage = content.find(p => p.id === 'home');
+        const section = homePage?.sections.find(s => s.id === 'benefits');
+        
+        const ICON_MAP: Record<string, any> = {
+            Award, ShieldCheck, Truck, Star, Heart, Zap, Gift, Camera, Globe, MapPin, 
+            Phone, Mail, Instagram, Facebook, Twitter, Clock, Calendar, Search, Monitor,
+            User: UserIcon, Users, Sun, Moon, Droplet, Smile, ThumbsUp, Send, Package, 
+            Tag, AlertCircle, Recycle, Linkedin, Youtube, Github, Twitch, MessageCircle, 
+            Music, Video, Smartphone, Leaf, Layers, Info, Check, LayoutGrid, FileText, 
+            Shield, Wand2, Sparkles
+        };
+
+        if (section) {
+            const orderField = section.fields.find(f => f.key === 'benefits_order');
+            const order = orderField ? orderField.value.split(',').filter(Boolean) : [];
+            
+            if (order.length > 0) {
+                const loadedBenefits = order.map(key => {
+                    const iconName = section.fields.find(f => f.key === `${key}_icon`)?.value || 'Award';
+                    const title = section.fields.find(f => f.key === `${key}_title`)?.value || '';
+                    const desc = section.fields.find(f => f.key === `${key}_desc`)?.value || '';
+                    
+                    const IconComponent = ICON_MAP[iconName] || Award;
+                    
+                    return { icon: IconComponent, title, desc };
+                });
+                setBenefits(loadedBenefits);
+            } else {
+                 // Fallback default content
+                 setBenefits([
+                    { icon: Award, title: 'Papel Fine Art', desc: 'Impressão em papel de alta gramatura com fidelidade de cores impecável.' },
+                    { icon: ShieldCheck, title: 'Laminado UV', desc: 'Uma camada extra de proteção que garante durabilidade de décadas.' },
+                    { icon: Truck, title: 'Entrega Segura', desc: 'Produção artesanal em até 48h com embalagem premium anti-impacto.' },
+                ]);
+            }
+        } else {
+             // Fallback default content
+             setBenefits([
+                { icon: Award, title: 'Papel Fine Art', desc: 'Impressão em papel de alta gramatura com fidelidade de cores impecável.' },
+                { icon: ShieldCheck, title: 'Laminado UV', desc: 'Uma camada extra de proteção que garante durabilidade de décadas.' },
+                { icon: Truck, title: 'Entrega Segura', desc: 'Produção artesanal em até 48h com embalagem premium anti-impacto.' },
+            ]);
+        }
+    }, []);
+
+    if (benefits.length === 0) return null;
 
     return (
         <section id="benefits" className="py-24 bg-white">
@@ -139,6 +214,51 @@ const BenefitsSection = () => {
 };
 
 const GalleryFeatureSection = () => {
+    const [content, setContent] = useState({
+        badge_text: 'Decoração Viva',
+        headline: 'Transforme qualquer espaço em uma galeria.',
+        description: 'Sua geladeira, armário ou painel magnético se transformam em uma bela vitrine para seus momentos favoritos. Reorganize quando quiser para manter seu espaço sempre renovado.',
+        list_items: [
+            "Perfeito para cozinhas, escritórios e quartos.",
+            "Crie coleções temáticas ou conte uma história.",
+            "Uma opção de presente inesquecível.",
+            "Fácil de atualizar com novas fotos a qualquer momento."
+        ],
+        button_text: 'Começar a criar',
+        image_url: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?q=80&w=1000&auto=format&fit=crop',
+        card_title: 'Favorito dos Clientes',
+        card_text: '"Transformou minha cozinha!"',
+        card_visible: true
+    });
+
+    useEffect(() => {
+        const siteContent = getSiteContent();
+        const homePage = siteContent.find(p => p.id === 'home');
+        const section = homePage?.sections.find(s => s.id === 'gallery_feature');
+
+        if (section) {
+            const getField = (key: string) => section.fields.find(f => f.key === key)?.value;
+            const getBoolField = (key: string) => section.fields.find(f => f.key === key)?.value === 'true';
+
+            setContent(prev => ({
+                badge_text: getField('badge_text') || prev.badge_text,
+                headline: getField('headline') || prev.headline,
+                description: getField('description') || prev.description,
+                list_items: [
+                    getField('list_item_1') || prev.list_items[0],
+                    getField('list_item_2') || prev.list_items[1],
+                    getField('list_item_3') || prev.list_items[2],
+                    getField('list_item_4') || prev.list_items[3],
+                ],
+                button_text: getField('button_text') || prev.button_text,
+                image_url: getField('image_url') || prev.image_url,
+                card_title: getField('card_title') || prev.card_title,
+                card_text: getField('card_text') || prev.card_text,
+                card_visible: section.fields.find(f => f.key === 'card_visible') ? getBoolField('card_visible') : prev.card_visible
+            }));
+        }
+    }, []);
+
     return (
         <section className="py-24 bg-white overflow-hidden border-t border-gray-100">
             <div className="max-w-[1200px] mx-auto px-6">
@@ -149,38 +269,35 @@ const GalleryFeatureSection = () => {
                         <div className="absolute top-10 -left-10 w-40 h-40 bg-[#B8860B]/10 rounded-full blur-3xl"></div>
                         <div className="relative group">
                             <img 
-                                src="https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?q=80&w=1000&auto=format&fit=crop" 
+                                src={content.image_url} 
                                 alt="Decoração com Ímãs" 
                                 className="w-full rounded-2xl shadow-2xl object-cover aspect-square md:aspect-[4/3] z-10 relative"
                             />
                             {/* Card Flutuante Decorativo */}
-                            <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-xl shadow-xl border border-gray-100 hidden md:block z-20 animate-fade-in">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <Heart size={20} className="text-[#B8860B]" fill="currentColor" />
-                                    <span className="font-bold text-[#1d1d1f] text-sm">Favorito dos Clientes</span>
+                            {content.card_visible && (
+                                <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-xl shadow-xl border border-gray-100 hidden md:block z-20 animate-fade-in">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Heart size={20} className="text-[#B8860B]" fill="currentColor" />
+                                        <span className="font-bold text-[#1d1d1f] text-sm">{content.card_title}</span>
+                                    </div>
+                                    <p className="text-xs text-gray-500">{content.card_text}</p>
                                 </div>
-                                <p className="text-xs text-gray-500">"Transformou minha cozinha!"</p>
-                            </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Texto e Pontos */}
                     <div className="flex-1">
-                        <span className="text-[#B8860B] font-bold text-[10px] uppercase tracking-[0.3em] mb-4 block">Decoração Viva</span>
+                        <span className="text-[#B8860B] font-bold text-[10px] uppercase tracking-[0.3em] mb-4 block">{content.badge_text}</span>
                         <h2 className="text-4xl md:text-5xl font-serif text-[#1d1d1f] mb-8 leading-tight">
-                            Transforme qualquer espaço em uma galeria.
+                            {content.headline}
                         </h2>
                         <p className="text-[#86868b] text-lg font-light leading-relaxed mb-10">
-                            Sua geladeira, armário ou painel magnético se transformam em uma bela vitrine para seus momentos favoritos. Reorganize quando quiser para manter seu espaço sempre renovado.
+                            {content.description}
                         </p>
 
                         <ul className="space-y-5">
-                            {[
-                                "Perfeito para cozinhas, escritórios e quartos.",
-                                "Crie coleções temáticas ou conte uma história.",
-                                "Uma opção de presente inesquecível.",
-                                "Fácil de atualizar com novas fotos a qualquer momento."
-                            ].map((item, i) => (
+                            {content.list_items.map((item, i) => (
                                 <li key={i} className="flex items-center gap-4 text-[#1d1d1f] font-medium text-sm group">
                                     <div className="w-6 h-6 rounded-full bg-[#F5F5F7] flex items-center justify-center text-[#B8860B] group-hover:bg-[#B8860B] group-hover:text-white transition-colors">
                                         <Check size={12} strokeWidth={3} />
@@ -195,7 +312,7 @@ const GalleryFeatureSection = () => {
                                 to="/studio" 
                                 className="inline-flex items-center gap-3 px-8 py-3 bg-[#1d1d1f] text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg"
                             >
-                                Começar a criar <Wand2 size={14} />
+                                {content.button_text} <Wand2 size={14} />
                             </Link>
                         </div>
                     </div>

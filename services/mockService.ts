@@ -785,11 +785,52 @@ const INITIAL_CMS_CONTENT: PageContent[] = [
         sections: [
             {
                 id: 'hero',
-                title: 'Hero Section',
+                title: 'Seção Hero (Topo)',
                 fields: [
-                    { key: 'headline', label: 'Título Principal', type: 'text', value: 'Suas fotos em memórias táteis.' },
-                    { key: 'subheadline', label: 'Subtítulo', type: 'textarea', value: 'A sofisticação dos ímãs premium com acabamento manual.' },
-                    { key: 'hero_image', label: 'Imagem de Fundo', type: 'image', value: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1200' }
+                    { key: 'badge_text', label: 'Texto do Badge', type: 'text', value: 'Eternizando Momentos' },
+                    { key: 'headline_main', label: 'Título Principal (Parte 1)', type: 'text', value: 'Suas fotos em' },
+                    { key: 'headline_highlight', label: 'Título Destaque (Parte 2)', type: 'text', value: 'memórias táteis.' },
+                    { key: 'subheadline', label: 'Subtítulo', type: 'textarea', value: 'A sofisticação dos ímãs premium com acabamento manual. Qualidade fotográfica que resiste ao tempo, direto na sua porta.' },
+                    { key: 'button_primary_text', label: 'Texto Botão Principal', type: 'text', value: 'Criar meus ímãs' },
+                    { key: 'button_secondary_text', label: 'Texto Botão Secundário', type: 'text', value: 'Conheça o processo' },
+                    { key: 'hero_image', label: 'URL da Imagem de Fundo', type: 'image', value: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1200' }
+                ]
+            },
+            {
+                id: 'benefits',
+                title: 'Seção de Benefícios',
+                fields: [
+                    { key: 'benefit_1_icon', label: 'Ícone 1', type: 'text', value: 'Award' },
+                    { key: 'benefit_1_title', label: 'Título 1', type: 'text', value: 'Papel Fine Art' },
+                    { key: 'benefit_1_desc', label: 'Descrição 1', type: 'textarea', value: 'Impressão em papel de alta gramatura com fidelidade de cores impecável.' },
+                    
+                    { key: 'benefit_2_icon', label: 'Ícone 2', type: 'text', value: 'ShieldCheck' },
+                    { key: 'benefit_2_title', label: 'Título 2', type: 'text', value: 'Laminado UV' },
+                    { key: 'benefit_2_desc', label: 'Descrição 2', type: 'textarea', value: 'Uma camada extra de proteção que garante durabilidade de décadas.' },
+                    
+                    { key: 'benefit_3_icon', label: 'Ícone 3', type: 'text', value: 'Truck' },
+                    { key: 'benefit_3_title', label: 'Título 3', type: 'text', value: 'Entrega Segura' },
+                    { key: 'benefit_3_desc', label: 'Descrição 3', type: 'textarea', value: 'Produção artesanal em até 48h com embalagem premium anti-impacto.' },
+
+                    { key: 'benefits_order', label: 'Ordem', type: 'text', value: 'benefit_1,benefit_2,benefit_3' }
+                ]
+            },
+            {
+                id: 'gallery_feature',
+                title: 'Seção Galeria (Transforme)',
+                fields: [
+                    { key: 'badge_text', label: 'Texto do Badge', type: 'text', value: 'Decoração Viva' },
+                    { key: 'headline', label: 'Título Principal', type: 'text', value: 'Transforme qualquer espaço em uma galeria.' },
+                    { key: 'description', label: 'Descrição', type: 'textarea', value: 'Sua geladeira, armário ou painel magnético se transformam em uma bela vitrine para seus momentos favoritos. Reorganize quando quiser para manter seu espaço sempre renovado.' },
+                    { key: 'list_item_1', label: 'Item da Lista 1', type: 'text', value: 'Perfeito para cozinhas, escritórios e quartos.' },
+                    { key: 'list_item_2', label: 'Item da Lista 2', type: 'text', value: 'Crie coleções temáticas ou conte uma história.' },
+                    { key: 'list_item_3', label: 'Item da Lista 3', type: 'text', value: 'Uma opção de presente inesquecível.' },
+                    { key: 'list_item_4', label: 'Item da Lista 4', type: 'text', value: 'Fácil de atualizar com novas fotos a qualquer momento.' },
+                    { key: 'button_text', label: 'Texto do Botão', type: 'text', value: 'Começar a criar' },
+                    { key: 'image_url', label: 'URL da Imagem Principal', type: 'image', value: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?q=80&w=1000&auto=format&fit=crop' },
+                    { key: 'card_title', label: 'Título do Card Flutuante', type: 'text', value: 'Favorito dos Clientes' },
+                    { key: 'card_text', label: 'Texto do Card Flutuante', type: 'text', value: '"Transformou minha cozinha!"' },
+                    { key: 'card_visible', label: 'Exibir Card Flutuante?', type: 'boolean', value: 'true' }
                 ]
             }
         ]

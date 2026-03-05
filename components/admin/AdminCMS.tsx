@@ -10,7 +10,7 @@ import {
     User, Users, Sun, Moon, Droplet, Smile, ThumbsUp, Send, Package, Tag, AlertCircle,
     Settings, ListOrdered, FileText, Recycle, Share2, RefreshCw, CheckCircle,
     Linkedin, Youtube, Github, Twitch, MessageCircle, Music, Video, Smartphone,
-    ArrowUp, ArrowDown
+    ArrowUp, ArrowDown, Type, MousePointerClick, Monitor, LayoutTemplate
 } from 'lucide-react';
 import { PageContent, PageField, PageSection } from '../../types';
 import { updateSiteContent } from '../../services/mockService';
@@ -391,6 +391,100 @@ const ContactSortableItem = ({
     );
 };
 
+const BenefitsSortableItem = ({
+    itemKey, section, pageId,
+    handleCmsUpdate, handleDeleteBenefit, editingIconKey,
+    setEditingIconKey, handleIconUpdate, getVal,
+    index, totalItems, moveItem
+}: {
+    itemKey: string;
+    section: PageSection;
+    pageId: string;
+    handleCmsUpdate: (pageId: string, sectionId: string, fieldKey: string, value: string) => void;
+    handleDeleteBenefit: (key: string) => void;
+    editingIconKey: string | null;
+    setEditingIconKey: (key: string | null) => void;
+    handleIconUpdate: (key: string, icon: string) => void;
+    getVal: (key: string) => string;
+    index: number;
+    totalItems: number;
+    moveItem: (index: number, direction: 'up' | 'down') => void;
+}) => {
+    const controls = useDragControls();
+    const isEditing = editingIconKey === itemKey;
+
+    const iconField = section.fields.find(f => f.key === `${itemKey}_icon`);
+    const IconComp = iconField ? (AVAILABLE_ICONS.find(i => i.id === iconField.value)?.icon || Award) : Award;
+    const currentIconId = iconField ? iconField.value : 'Award';
+
+    return (
+        <Reorder.Item
+            value={itemKey}
+            layout="position"
+            dragListener={false}
+            dragControls={controls}
+            className={`bg-white border border-gray-200 rounded-xl transition-all group relative overflow-hidden mb-3 ${isEditing ? 'ring-1 ring-[#B8860B] shadow-md' : 'hover:shadow-md'}`}
+        >
+            <div className="flex flex-col sm:flex-row gap-4 p-4">
+                <div className="flex items-start gap-3 w-full sm:w-auto">
+                     <div 
+                        onPointerDown={(e) => !isEditing && controls.start(e)}
+                        className={`text-gray-300 transition-colors shrink-0 touch-none mt-2 ${isEditing ? 'opacity-30 cursor-not-allowed' : 'group-hover:text-[#1d1d1f] cursor-grab'}`}
+                    >
+                        <GripVertical size={20} />
+                    </div>
+
+                    <div className="flex flex-col gap-0.5 mr-1 mt-1">
+                        <button type="button" onClick={() => moveItem(index, 'up')} disabled={index === 0} className="text-gray-300 hover:text-[#1d1d1f] disabled:opacity-20 transition-colors"><ArrowUp size={12}/></button>
+                        <button type="button" onClick={() => moveItem(index, 'down')} disabled={index === totalItems - 1} className="text-gray-300 hover:text-[#1d1d1f] disabled:opacity-20 transition-colors"><ArrowDown size={12}/></button>
+                    </div>
+                    
+                    <div className="relative mt-1">
+                        <div 
+                            onClick={() => setEditingIconKey(isEditing ? null : itemKey)}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors cursor-pointer ${isEditing ? 'bg-[#1d1d1f] text-white' : 'bg-gray-100 text-[#1d1d1f] hover:bg-[#B8860B] hover:text-white'}`}
+                            title="Clique para alterar o ícone"
+                        >
+                            <IconComp size={20} />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex-1 space-y-3">
+                    <input 
+                        type="text" 
+                        value={getVal(`${itemKey}_title`)} 
+                        onChange={(e) => handleCmsUpdate(pageId, section.id, `${itemKey}_title`, e.target.value)}
+                        className="w-full text-sm font-bold text-[#1d1d1f] bg-transparent border-b border-gray-100 hover:border-gray-200 focus:border-[#B8860B] outline-none py-1"
+                        placeholder="Título do Benefício"
+                    />
+                    <textarea 
+                        value={getVal(`${itemKey}_desc`)} 
+                        onChange={(e) => handleCmsUpdate(pageId, section.id, `${itemKey}_desc`, e.target.value)}
+                        className="w-full text-xs text-gray-500 bg-[#F9F9FA] border border-transparent rounded-lg p-2 outline-none focus:bg-white focus:border-[#B8860B] resize-none h-16"
+                        placeholder="Descrição do benefício..."
+                    />
+                </div>
+
+                <div className="flex items-start pl-4 border-l border-gray-100 shrink-0">
+                    <button onClick={() => handleDeleteBenefit(itemKey)} className="text-gray-300 hover:text-red-500 transition-colors p-2" title="Remover">
+                        <Trash2 size={16} />
+                    </button>
+                </div>
+            </div>
+
+            {isEditing && (
+                <div className="bg-gray-50/80 border-t border-gray-100 p-4">
+                    <InlineIconPicker 
+                        onSelect={(val) => handleIconUpdate(itemKey, val)}
+                        currentIcon={currentIconId}
+                    />
+                </div>
+            )}
+        </Reorder.Item>
+    );
+};
+
 const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialPageId }) => {
     const [selectedPageId, setSelectedPageId] = useState<string>(initialPageId);
     const [isDirty, setIsDirty] = useState(false);
@@ -425,6 +519,9 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
     // Estado para exclusão de ponto sustentável
     const [sustainabilityPointToDelete, setSustainabilityPointToDelete] = useState<number | null>(null);
 
+    // Estado para ordem dos benefícios (Home)
+    const [benefitsOrder, setBenefitsOrder] = useState<string[]>([]);
+
     useEffect(() => {
         setSelectedPageId(initialPageId);
     }, [initialPageId]);
@@ -449,8 +546,13 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
             const infoSection = contactPage?.sections.find(s => s.id === 'info');
             const orderField = infoSection?.fields.find(f => f.key === 'contact_order');
             setContactOrder(orderField ? orderField.value.split(',').filter(Boolean) : ['hours', 'email', 'phone', 'address', 'company_info']);
+        } else if (selectedPageId === 'home') {
+            const homePage = cmsContent.find(p => p.id === 'home');
+            const benefitsSection = homePage?.sections.find(s => s.id === 'benefits');
+            const orderField = benefitsSection?.fields.find(f => f.key === 'benefits_order');
+            setBenefitsOrder(orderField ? orderField.value.split(',').filter(Boolean) : ['benefit_1', 'benefit_2', 'benefit_3']);
         }
-    }, [selectedPageId, cmsContent]); 
+    }, [selectedPageId, cmsContent]);  
 
     const handleCmsUpdate = (pageId: string, sectionId: string, fieldKey: string, value: string) => {
         const newContent = cmsContent.map(page => {
@@ -572,6 +674,93 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
             setSocialOrder(socialOrder.filter(k => k !== key));
             setIsDirty(true);
         }
+    };
+
+    const handleAddBenefit = () => {
+        const nextId = Date.now();
+        const key = `benefit_${nextId}`;
+        const pageId = 'home';
+        const sectionId = 'benefits';
+
+        const newFields: PageField[] = [
+            { key: `${key}_icon`, label: `Ícone`, type: 'text', value: 'Star' },
+            { key: `${key}_title`, label: `Título`, type: 'text', value: 'Novo Benefício' },
+            { key: `${key}_desc`, label: `Descrição`, type: 'textarea', value: 'Descrição do benefício.' }
+        ];
+
+        const newContent = cmsContent.map(page => {
+            if (page.id === pageId) {
+                return {
+                    ...page,
+                    sections: page.sections.map(section => {
+                        if (section.id === sectionId) {
+                            const updatedFields = [...section.fields, ...newFields];
+                            const orderField = updatedFields.find(f => f.key === 'benefits_order');
+                            const newOrder = [...benefitsOrder, key];
+                            if (orderField) {
+                                orderField.value = newOrder.join(',');
+                            } else {
+                                updatedFields.push({ key: 'benefits_order', label: 'Ordem', type: 'text', value: newOrder.join(',') });
+                            }
+                            return { ...section, fields: updatedFields };
+                        }
+                        return section;
+                    })
+                };
+            }
+            return page;
+        });
+
+        setCmsContent(newContent);
+        setBenefitsOrder([...benefitsOrder, key]);
+        setIsDirty(true);
+    };
+
+    const handleDeleteBenefit = (key: string) => {
+        if (confirm('Tem certeza que deseja remover este benefício?')) {
+             const pageId = 'home';
+             const sectionId = 'benefits';
+             
+             const newContent = cmsContent.map(page => {
+                if (page.id === pageId) {
+                    return {
+                        ...page,
+                        sections: page.sections.map(section => {
+                            if (section.id === sectionId) {
+                                const updatedFields = section.fields.filter(f => !f.key.startsWith(`${key}_`));
+                                const orderField = updatedFields.find(f => f.key === 'benefits_order');
+                                const newOrder = benefitsOrder.filter(k => k !== key);
+                                if (orderField) {
+                                    orderField.value = newOrder.join(',');
+                                }
+                                return { ...section, fields: updatedFields };
+                            }
+                            return section;
+                        })
+                    };
+                }
+                return page;
+            });
+            
+            setCmsContent(newContent);
+            setBenefitsOrder(benefitsOrder.filter(k => k !== key));
+            setIsDirty(true);
+        }
+    };
+
+    const handleMoveBenefit = (index: number, direction: 'up' | 'down') => {
+        const newOrder = [...benefitsOrder];
+        if (direction === 'up' && index > 0) {
+            [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+        } else if (direction === 'down' && index < newOrder.length - 1) {
+            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+        }
+        
+        setBenefitsOrder(newOrder);
+        // Update CMS content
+        const pageId = 'home';
+        const sectionId = 'benefits';
+        handleCmsUpdate(pageId, sectionId, 'benefits_order', newOrder.join(','));
     };
 
     // Helper para campos genéricos
@@ -2092,6 +2281,178 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
         );
     };
 
+    const renderBenefitsSection = (pageId: string, section: PageSection) => {
+        const getVal = (k: string) => section.fields.find(f => f.key === k)?.value || '';
+
+        return (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fade-in">
+                 <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-white border border-gray-100 rounded-md text-[#1d1d1f] shadow-sm"><Award size={16}/></div>
+                        <h3 className="font-serif font-bold text-lg text-[#1d1d1f]">{section.title}</h3>
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest bg-white border border-gray-100 px-2 py-1 rounded">Seção: {section.id}</span>
+                </div>
+                
+                <div className="p-6 space-y-6">
+                     <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-xs font-bold text-[#1d1d1f] uppercase tracking-widest">Ordem e Conteúdo</h4>
+                        <span className="text-[9px] text-gray-400 italic">Arraste para reordenar</span>
+                    </div>
+
+                    <Reorder.Group axis="y" values={benefitsOrder} onReorder={(newOrder) => {
+                        setBenefitsOrder(newOrder);
+                        handleCmsUpdate('home', 'benefits', 'benefits_order', newOrder.join(','));
+                    }} className="space-y-3">
+                        {benefitsOrder.map((itemKey, index) => {
+                            return (
+                                <BenefitsSortableItem 
+                                    key={itemKey}
+                                    itemKey={itemKey}
+                                    section={section}
+                                    pageId={pageId}
+                                    handleCmsUpdate={handleCmsUpdate}
+                                    handleDeleteBenefit={handleDeleteBenefit}
+                                    editingIconKey={editingIconKey}
+                                    setEditingIconKey={setEditingIconKey}
+                                    handleIconUpdate={(key, icon) => {
+                                        handleCmsUpdate(pageId, section.id, `${key}_icon`, icon);
+                                        setEditingIconKey(null);
+                                    }}
+                                    getVal={getVal}
+                                    index={index}
+                                    totalItems={benefitsOrder.length}
+                                    moveItem={handleMoveBenefit}
+                                />
+                            );
+                        })}
+                    </Reorder.Group>
+
+                    <button 
+                        onClick={handleAddBenefit}
+                        className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-xs font-bold text-gray-400 uppercase tracking-widest hover:border-[#B8860B] hover:text-[#B8860B] transition-all flex items-center justify-center gap-2"
+                    >
+                        <Plus size={16} /> ADICIONAR BENEFÍCIO
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
+    const renderGalleryFeature = (pageId: string, section: PageSection) => {
+        const getField = (key: string) => section.fields.find(f => f.key === key);
+
+        return (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fade-in">
+                <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-white border border-gray-100 rounded-md text-[#1d1d1f] shadow-sm"><ImageIcon size={16}/></div>
+                        <h3 className="font-serif font-bold text-lg text-[#1d1d1f]">{section.title}</h3>
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest bg-white border border-gray-100 px-2 py-1 rounded">Seção: {section.id}</span>
+                </div>
+                
+                <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Left Column: Text Content */}
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-2 mb-2 border-b border-gray-100 pb-2">
+                            <Type size={16} className="text-[#B8860B]" />
+                            <h4 className="text-xs font-bold text-[#1d1d1f] uppercase tracking-widest">Conteúdo Textual</h4>
+                        </div>
+                        
+                        {getField('badge_text') && renderField(pageId, section.id, getField('badge_text')!)}
+                        {getField('headline') && renderField(pageId, section.id, getField('headline')!)}
+                        {getField('description') && renderField(pageId, section.id, getField('description')!)}
+                        
+                        <div className="pt-4">
+                            <div className="flex items-center gap-2 mb-4">
+                                <ListOrdered size={16} className="text-[#B8860B]" />
+                                <h4 className="text-xs font-bold text-[#1d1d1f] uppercase tracking-widest">Lista de Benefícios</h4>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 pl-4 border-l-2 border-gray-100">
+                                {[1, 2, 3, 4].map(num => {
+                                    const field = getField(`list_item_${num}`);
+                                    return field ? renderField(pageId, section.id, field) : null;
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="pt-4">
+                             <div className="flex items-center gap-2 mb-4">
+                                <MousePointerClick size={16} className="text-[#B8860B]" />
+                                <h4 className="text-xs font-bold text-[#1d1d1f] uppercase tracking-widest">Botão de Ação</h4>
+                            </div>
+                            {getField('button_text') && renderField(pageId, section.id, getField('button_text')!)}
+                        </div>
+                    </div>
+
+                    {/* Right Column: Visuals & Floating Card */}
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-2 mb-2 border-b border-gray-100 pb-2">
+                            <ImageIcon size={16} className="text-[#B8860B]" />
+                            <h4 className="text-xs font-bold text-[#1d1d1f] uppercase tracking-widest">Visual & Card Flutuante</h4>
+                        </div>
+
+                        {getField('image_url') && renderField(pageId, section.id, getField('image_url')!)}
+
+                        <div className="bg-[#F9F9FA] rounded-xl p-4 border border-gray-100 mt-6 relative group">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Layers size={16} className="text-[#B8860B]" />
+                                    <h4 className="text-xs font-bold text-[#1d1d1f] uppercase tracking-widest">Card Flutuante</h4>
+                                </div>
+                                {getField('card_visible') && (
+                                    <ToggleSwitch 
+                                        checked={getField('card_visible')!.value === 'true'} 
+                                        onChange={() => handleCmsUpdate(pageId, section.id, 'card_visible', getField('card_visible')!.value === 'true' ? 'false' : 'true')} 
+                                    />
+                                )}
+                            </div>
+                            
+                            <div className="space-y-4">
+                                {getField('card_title') && renderField(pageId, section.id, getField('card_title')!)}
+                                {getField('card_text') && renderField(pageId, section.id, getField('card_text')!)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderHeroSection = (pageId: string, section: PageSection) => {
+        const getField = (key: string) => section.fields.find(f => f.key === key);
+
+        return (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fade-in">
+                <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-white border border-gray-100 rounded-md text-[#1d1d1f] shadow-sm"><LayoutTemplate size={16}/></div>
+                        <h3 className="font-serif font-bold text-lg text-[#1d1d1f]">{section.title}</h3>
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest bg-white border border-gray-100 px-2 py-1 rounded">Seção: {section.id}</span>
+                </div>
+                
+                <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-2 mb-2 border-b border-gray-100 pb-2">
+                            <Monitor size={16} className="text-[#B8860B]" />
+                            <h4 className="text-xs font-bold text-[#1d1d1f] uppercase tracking-widest">Conteúdo Principal</h4>
+                        </div>
+                        {section.fields.filter(f => !f.key.includes('bg') && !f.key.includes('image')).map(field => renderField(pageId, section.id, field))}
+                    </div>
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-2 mb-2 border-b border-gray-100 pb-2">
+                            <ImageIcon size={16} className="text-[#B8860B]" />
+                            <h4 className="text-xs font-bold text-[#1d1d1f] uppercase tracking-widest">Background & Visual</h4>
+                        </div>
+                        {section.fields.filter(f => f.key.includes('bg') || f.key.includes('image')).map(field => renderField(pageId, section.id, field))}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     const renderStatsPage = () => {
         const sectionId = 'config';
         const itemsMap: Record<string, { label: string, toggleKey: string, inputKey: string }> = {
@@ -2257,6 +2618,38 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                 ) : (
                     <div className="space-y-12">
                         {currentPageContent?.sections.map(section => {
+                            // Se for a seção Hero da home
+                            if (selectedPageId === 'home' && section.id === 'hero') {
+                                return (
+                                    <div key={section.id} className="space-y-6">
+                                        <div className="flex items-center gap-3 ml-2">
+                                            <div className="p-2 bg-[#B8860B]/10 rounded-lg text-[#B8860B] shadow-sm"><LayoutTemplate size={20}/></div>
+                                            <div>
+                                                <h3 className="font-serif font-bold text-xl text-[#1d1d1f]">{section.title}</h3>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Destaque Principal</p>
+                                            </div>
+                                        </div>
+                                        {renderHeroSection(selectedPageId, section)}
+                                    </div>
+                                );
+                            }
+
+                            // Se for a seção Gallery Feature da home
+                            if (selectedPageId === 'home' && section.id === 'gallery_feature') {
+                                return (
+                                    <div key={section.id} className="space-y-6">
+                                        <div className="flex items-center gap-3 ml-2">
+                                            <div className="p-2 bg-[#B8860B]/10 rounded-lg text-[#B8860B] shadow-sm"><ImageIcon size={20}/></div>
+                                            <div>
+                                                <h3 className="font-serif font-bold text-xl text-[#1d1d1f]">{section.title}</h3>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Galeria Interativa</p>
+                                            </div>
+                                        </div>
+                                        {renderGalleryFeature(selectedPageId, section)}
+                                    </div>
+                                );
+                            }
+
                             // Se for a seção de etapas da página de processo, usa o renderizador especial
                             if (selectedPageId === 'process' && section.id === 'steps') {
                                 return (
@@ -2285,6 +2678,22 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ cmsContent, setCmsContent, initialP
                                             </div>
                                         </div>
                                         {renderSustainabilityPoints(selectedPageId, section)}
+                                    </div>
+                                );
+                            }
+
+                            // Se for a seção de benefícios da home, usa renderizador especial
+                            if (selectedPageId === 'home' && section.id === 'benefits') {
+                                return (
+                                    <div key={section.id} className="space-y-6">
+                                        <div className="flex items-center gap-3 ml-2">
+                                            <div className="p-2 bg-[#B8860B]/10 rounded-lg text-[#B8860B] shadow-sm"><Award size={20}/></div>
+                                            <div>
+                                                <h3 className="font-serif font-bold text-xl text-[#1d1d1f]">{section.title}</h3>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Destaques Principais</p>
+                                            </div>
+                                        </div>
+                                        {renderBenefitsSection(selectedPageId, section)}
                                     </div>
                                 );
                             }
